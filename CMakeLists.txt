@@ -1,9 +1,10 @@
 #
 # Required CMake version.
 #
-project(kommpot LANGUAGES CXX)
 cmake_minimum_required(VERSION 3.19)
 cmake_policy(VERSION 3.10)
+
+project(kommpot LANGUAGES CXX)
 
 #
 # Required C++ standard.
