@@ -36,3 +36,4 @@ file(MAKE_DIRECTORY ${BINARY_OUTPUT_PATH})
 #
 # Add projects.
 #
+add_subdirectory(third-party/libusb-cmake)
