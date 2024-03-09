@@ -5,7 +5,7 @@ set(MINOR_VERSION 5)
 set(PACKAGE libftdi1)
 set(VERSION_STRING ${MAJOR_VERSION}.${MINOR_VERSION})
 set(VERSION ${VERSION_STRING})
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # CMake
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -97,7 +97,7 @@ if ( WIN32 )
   set ( CPACK_NSIS_MODIFY_PATH             ON )
 endif ()
 
-set(CPACK_RESOURCE_FILE_LICENSE        ${CMAKE_SOURCE_DIR}/LICENSE)
+set(CPACK_RESOURCE_FILE_LICENSE        ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)
 
 set(CPACK_SOURCE_GENERATOR             TGZ)
 set(CPACK_SOURCE_IGNORE_FILES          "\\\\.git;~$;build/")
@@ -113,15 +113,15 @@ set(ARCHIVE_NAME ${CMAKE_PROJECT_NAME}-${VERSION_STRING})
 add_custom_target(dist
     COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
             | bzip2 > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.bz2
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 if ( DOCUMENTATION )
    find_package ( Doxygen REQUIRED)
 
    # Copy doxy.config.in
-   set(top_srcdir ${CMAKE_SOURCE_DIR})
-   configure_file(${CMAKE_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile )
-   configure_file(${CMAKE_SOURCE_DIR}/doc/Doxyfile.xml.in ${CMAKE_BINARY_DIR}/Doxyfile.xml )
+   set(top_srcdir ${CMAKE_CURRENT_SOURCE_DIR})
+   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile )
+   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.xml.in ${CMAKE_BINARY_DIR}/Doxyfile.xml )
 
    # Run doxygen
    add_custom_command(
@@ -139,19 +139,19 @@ if ( FTDIPP )
   project(libftdipp1 C CXX)
   add_subdirectory(ftdipp)
 endif ()
-if ( PYTHON_BINDINGS )
-add_subdirectory(python)
-endif ()
-if ( FTDI_EEPROM )
-  add_subdirectory(ftdi_eeprom)
-endif ()
-if ( EXAMPLES )
-  add_subdirectory(examples)
-endif ()
-add_subdirectory(packages)
-if ( BUILD_TESTS )
-  add_subdirectory(test)
-endif ()
+# if ( PYTHON_BINDINGS )
+# add_subdirectory(python)
+# endif ()
+# if ( FTDI_EEPROM )
+#   add_subdirectory(ftdi_eeprom)
+# endif ()
+# if ( EXAMPLES )
+#   add_subdirectory(examples)
+# endif ()
+# add_subdirectory(packages)
+# if ( BUILD_TESTS )
+#   add_subdirectory(test)
+# endif ()
 
 # PkgConfig
 set(prefix      ${CMAKE_INSTALL_PREFIX})
@@ -165,8 +165,8 @@ if(${WIN32})
    set(libdir      ${CMAKE_INSTALL_PREFIX}/bin)
 endif(${WIN32})
 
-configure_file(${CMAKE_SOURCE_DIR}/libftdi1.pc.in ${CMAKE_BINARY_DIR}/libftdi1.pc @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/libftdipp1.pc.in ${CMAKE_BINARY_DIR}/libftdipp1.pc @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libftdi1.pc.in ${CMAKE_BINARY_DIR}/libftdi1.pc @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libftdipp1.pc.in ${CMAKE_BINARY_DIR}/libftdipp1.pc @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/libftdi1.pc ${CMAKE_BINARY_DIR}/libftdipp1.pc
         DESTINATION lib${LIB_SUFFIX}/pkgconfig)
 

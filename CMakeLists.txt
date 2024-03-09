@@ -38,6 +38,7 @@ file(MAKE_DIRECTORY ${BINARY_OUTPUT_PATH})
 # State which dependencies to compile.
 #
 set(IS_COMPILING_LIBUSB true)
+set(IS_COMPILING_LIBFTDI true)
 
 #
 # Add dependencies.
@@ -48,6 +49,15 @@ message("Compiling following dependencies:")
 if(IS_COMPILING_LIBUSB)
     message("  - libusb")
     add_subdirectory(third-party/libusb-cmake)
+endif()
+
+if(IS_COMPILING_LIBFTDI)
+    if(NOT IS_COMPILING_LIBUSB)
+        message(FATAL_ERROR "libusb is required for libftdi!")
+    endif()
+
+    message("  - libftdi")
+    add_subdirectory(third-party/libftdi)
 endif()
 
 message("")
