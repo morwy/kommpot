@@ -35,10 +35,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
 file(MAKE_DIRECTORY ${BINARY_OUTPUT_PATH})
 
 #
-# State which dependencies to compile.
+# Define compilation settings.
 #
-set(IS_COMPILING_LIBUSB true)
-set(IS_COMPILING_LIBFTDI true)
+if(NOT DEFINED IS_COMPILING_STATIC AND NOT DEFINED IS_COMPILING_SHARED)
+    set(IS_COMPILING_STATIC false)
+    set(IS_COMPILING_SHARED true)
+endif()
+
+if(NOT DEFINED IS_COMPILING_LIBUSB)
+    set(IS_COMPILING_LIBUSB true)
+endif()
+
+if(NOT DEFINED IS_COMPILING_LIBFTDI)
+    set(IS_COMPILING_LIBFTDI true)
+endif()
 
 #
 # Add dependencies.
@@ -47,6 +57,10 @@ set(IS_COMPILING_LIBFTDI true)
 message("Compiling following dependencies:")
 
 if(IS_COMPILING_LIBUSB)
+    if(IS_COMPILING_SHARED)
+        set(LIBUSB_BUILD_SHARED_LIBS true)
+    endif()
+
     message("  - libusb")
     add_subdirectory(third-party/libusb-cmake)
 endif()
@@ -54,6 +68,10 @@ endif()
 if(IS_COMPILING_LIBFTDI)
     if(NOT IS_COMPILING_LIBUSB)
         message(FATAL_ERROR "libusb is required for libftdi!")
+    endif()
+
+    if(IS_COMPILING_SHARED)
+        set(LIBUSB_BUILD_SHARED_LIBS true)
     endif()
 
     message("  - libftdi")
