@@ -44,7 +44,41 @@
 #include <stdio.h>
 #ifndef _WIN32
 #include <sys/time.h>
+#else
+
+/**
+ * @author Michaelangel007 (https://stackoverflow.com/users/1339447/michaelangel007)
+ * @link https://stackoverflow.com/a/26085827
+ * @attention licensed under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
+ */
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <winsock.h>
+#include <stdint.h> // portable: uint64_t   MSVC: __int64
+
+int gettimeofday(struct timeval *tp, struct timezone *tzp)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970
+    static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+
+    SYSTEMTIME system_time;
+    FILETIME file_time;
+    uint64_t time;
+
+    GetSystemTime(&system_time);
+    SystemTimeToFileTime(&system_time, &file_time);
+    time = ((uint64_t)file_time.dwLowDateTime);
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec = (long)((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+    return 0;
+}
+
 #endif
+
 #include <libusb.h>
 
 #include "ftdi.h"
@@ -110,7 +144,7 @@ ftdi_readstream_cb(struct libusb_transfer *transfer)
     }
     else
     {
-        fprintf(stderr, "unknown status %d\n",transfer->status);
+        fprintf(stderr, "unknown status %d\n", transfer->status);
         state->result = LIBUSB_ERROR_IO;
     }
 }
@@ -147,13 +181,12 @@ TimevalDiff(const struct timeval *a, const struct timeval *b)
 
 */
 
-int
-ftdi_readstream(struct ftdi_context *ftdi,
-                FTDIStreamCallback *callback, void *userdata,
-                int packetsPerTransfer, int numTransfers)
+int ftdi_readstream(struct ftdi_context *ftdi,
+                    FTDIStreamCallback *callback, void *userdata,
+                    int packetsPerTransfer, int numTransfers)
 {
     struct libusb_transfer **transfers;
-    FTDIStreamState state = { callback, userdata, ftdi->max_packet_size, 1 };
+    FTDIStreamState state = {callback, userdata, ftdi->max_packet_size, 1};
     int bufferSize = packetsPerTransfer * ftdi->max_packet_size;
     int xferIndex;
     int err = 0;
@@ -161,21 +194,21 @@ ftdi_readstream(struct ftdi_context *ftdi,
     /* Only FT2232H and FT232H know about the synchronous FIFO Mode*/
     if ((ftdi->type != TYPE_2232H) && (ftdi->type != TYPE_232H))
     {
-        fprintf(stderr,"Device doesn't support synchronous FIFO mode\n");
+        fprintf(stderr, "Device doesn't support synchronous FIFO mode\n");
         return 1;
     }
 
     /* We don't know in what state we are, switch to reset*/
-    if (ftdi_set_bitmode(ftdi,  0xff, BITMODE_RESET) < 0)
+    if (ftdi_set_bitmode(ftdi, 0xff, BITMODE_RESET) < 0)
     {
-        fprintf(stderr,"Can't reset mode\n");
+        fprintf(stderr, "Can't reset mode\n");
         return 1;
     }
 
     /* Purge anything remaining in the buffers*/
     if (ftdi_tcioflush(ftdi) < 0)
     {
-        fprintf(stderr,"Can't flush FIFOs & buffers\n");
+        fprintf(stderr, "Can't flush FIFOs & buffers\n");
         return 1;
     }
 
@@ -224,9 +257,9 @@ ftdi_readstream(struct ftdi_context *ftdi,
      * fetching data for several to several ten milliseconds
      * and we skip blocks
      */
-    if (ftdi_set_bitmode(ftdi,  0xff, BITMODE_SYNCFF) < 0)
+    if (ftdi_set_bitmode(ftdi, 0xff, BITMODE_SYNCFF) < 0)
     {
-        fprintf(stderr,"Can't set synchronous fifo mode: %s\n",
+        fprintf(stderr, "Can't set synchronous fifo mode: %s\n",
                 ftdi_get_error_string(ftdi));
         goto cleanup;
     }
@@ -239,13 +272,13 @@ ftdi_readstream(struct ftdi_context *ftdi,
 
     do
     {
-        FTDIProgressInfo  *progress = &state.progress;
+        FTDIProgressInfo *progress = &state.progress;
         const double progressInterval = 1.0;
-        struct timeval timeout = { 0, ftdi->usb_read_timeout * 1000};
+        struct timeval timeout = {0, ftdi->usb_read_timeout * 1000};
         struct timeval now;
 
         int err = libusb_handle_events_timeout(ftdi->usb_ctx, &timeout);
-        if (err ==  LIBUSB_ERROR_INTERRUPTED)
+        if (err == LIBUSB_ERROR_INTERRUPTED)
             /* restart interrupted events */
             err = libusb_handle_events_timeout(ftdi->usb_ctx, &timeout);
         if (!state.result)
@@ -275,15 +308,15 @@ ftdi_readstream(struct ftdi_context *ftdi,
                                           &progress->prev.time);
 
                 progress->totalRate =
-                    progress->current.totalBytes /progress->totalTime;
+                    progress->current.totalBytes / progress->totalTime;
                 progress->currentRate =
                     (progress->current.totalBytes -
-                     progress->prev.totalBytes) / currentTime;
+                     progress->prev.totalBytes) /
+                    currentTime;
             }
 
             state.callback(NULL, 0, progress, state.userdata);
             progress->prev = progress->current;
-
         }
     } while (!state.result);
 
@@ -300,4 +333,3 @@ cleanup:
     else
         return state.result;
 }
-
