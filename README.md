@@ -12,6 +12,14 @@ Install required dependencies:
 sudo apt install cmake ninja-build -y
 ```
 
+#### Windows
+
+Install required dependencies:
+
+1. Download **Visual Studio 2022 Community** installer and start it.
+2. Select **Desktop development with C++** option.
+3. Continue with default selection (or anything else needed, e.g. Clang compiler).
+
 ## Dependencies
 
 | Dependency | Version |
