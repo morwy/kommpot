@@ -31,7 +31,9 @@ if(IS_COMPILING_SHARED)
   
   
   # Dependencies
-  target_link_libraries(ftdi1 ${LIBUSB_LIBRARIES})
+  if(PLATFORM_OS_WINDOWS)
+    target_link_libraries(ftdi1 ${LIBUSB_LIBRARIES})
+  endif()
   
   install ( TARGETS ftdi1
             RUNTIME DESTINATION bin
@@ -44,7 +46,11 @@ endif()
 if ( STATICLIBS )
   add_library(ftdi1-static STATIC ${c_sources})
   add_dependencies (ftdi1-static libusb-1.0)
-  target_link_libraries(ftdi1-static ${LIBUSB_LIBRARIES})
+  
+  if(PLATFORM_OS_WINDOWS)
+    target_link_libraries(ftdi1-static ${LIBUSB_LIBRARIES})
+  endif()
+
   set_target_properties(ftdi1-static PROPERTIES OUTPUT_NAME "ftdi1")
   set_target_properties(ftdi1-static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
   install ( TARGETS ftdi1-static
