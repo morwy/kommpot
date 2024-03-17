@@ -13,11 +13,11 @@ namespace kommpot {
 /**
  * @brief structure containing version of kommpot library
  */
-struct kommpot_version
+struct version
 {
 public:
-    kommpot_version(const uint8_t major, const uint8_t minor, const uint8_t micro,
-        const uint8_t nano, std::string git_hash);
+    version(const uint8_t major, const uint8_t minor, const uint8_t micro, const uint8_t nano,
+        std::string git_hash);
 
     [[nodiscard]] auto major() const noexcept -> uint8_t;
     [[nodiscard]] auto minor() const noexcept -> uint8_t;
@@ -28,7 +28,7 @@ public:
      * @brief gets short hash of last Git commit
      * @return string
      */
-    [[nodiscard]] auto get_git_hash() const noexcept -> std::string;
+    [[nodiscard]] auto git_hash() const noexcept -> std::string;
 
     /**
      * @brief creates string based on structure parameters
@@ -50,9 +50,9 @@ private:
 
 /**
  * @brief gets current version of kommpot library.
- * @return kommpot_version structure
+ * @return version structure
  */
-auto get_version() noexcept -> kommpot_version;
+auto get_version() noexcept -> version;
 
 } // namespace kommpot
 
