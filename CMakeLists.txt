@@ -28,9 +28,15 @@ include(ConvenienceDefinitions.cmake)
 set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR})
 set(BINARY_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin/${PLATFORM_OS}_${PLATFORM_TYPE}/${CMAKE_BUILD_TYPE})
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
+if(MSVC)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH}/..)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH}/..)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH}/..)
+else()
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
+endif()
 
 file(MAKE_DIRECTORY ${BINARY_OUTPUT_PATH})
 
@@ -54,7 +60,13 @@ endif()
 # Add dependencies.
 # Create list of built dependencies and their include directories.
 #
-message("Compiling following dependencies:")
+if(IS_COMPILING_STATIC)
+    set(COMPILATION_TYPE "static")
+else()
+    set(COMPILATION_TYPE "shared")
+endif()
+
+message("Compiling following dependencies (${COMPILATION_TYPE}):")
 
 if(IS_COMPILING_LIBUSB)
     if(IS_COMPILING_SHARED)
@@ -68,10 +80,6 @@ endif()
 if(IS_COMPILING_LIBFTDI)
     if(NOT IS_COMPILING_LIBUSB)
         message(FATAL_ERROR "libusb is required for libftdi!")
-    endif()
-
-    if(IS_COMPILING_SHARED)
-        set(LIBUSB_BUILD_SHARED_LIBS true)
     endif()
 
     message("  - libftdi")
