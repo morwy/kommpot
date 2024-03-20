@@ -69,29 +69,14 @@ enum class endpoint_type
 
 /**
  * @brief states specific configuration required for opening the device communication.
- * @example CDC-ACM devices, FTDI devices.
  */
-struct device_communication_configuration
+struct communication_configuration
+{};
+
+struct communication_error
 {
-    /**
-     * USB device settings.
-     */
-    uint32_t vendor_id = 0;
-    uint32_t product_id = 0;
-
-    /**
-     * FTDI connection settings.
-     */
-    uint8_t bit_mode = 0;
-    uint8_t bit_mask = 0;
-
-    /**
-     * Serial communication settings.
-     */
-    uint32_t baud_rate = 0;
-    uint8_t data_bits = 0;
-    uint8_t parity = 0;
-    uint8_t stop_bits = 0;
+    uint32_t code = 0;
+    std::string message = "";
 };
 
 class EXPORTED device_communication
@@ -114,10 +99,10 @@ public:
 
     /**
      * @brief sets specific configuration that has to be applied to device_communication object.
-     * @param configuration as device_communication_configuration structure.
-     * {@link device_communication_configuration device_communication_configuration}
+     * @param configuration as communication_configuration structure.
+     * {@link communication_configuration communication_configuration}
      */
-    void set_configuration(const device_communication_configuration &configuration)
+    void set_configuration(const communication_configuration &configuration)
     {
         m_is_custom_configuration_set = true;
         m_configuration = configuration;
@@ -125,10 +110,10 @@ public:
 
     /**
      * @brief returns current device_communication object configuration.
-     * @return configuration as device_communication_configuration structure.
-     * {@link device_communication_configuration device_communication_configuration}
+     * @return configuration as communication_configuration structure.
+     * {@link communication_configuration communication_configuration}
      */
-    [[nodiscard]] virtual auto configuration() const -> device_communication_configuration
+    [[nodiscard]] virtual auto configuration() const -> communication_configuration
     {
         return m_configuration;
     }
@@ -180,12 +165,17 @@ protected:
     constexpr static const std::array<char, 6> M_ARTIFICIAL_ID_PREFIX = {"PORT:"};
 
     bool m_is_custom_configuration_set = false;
-    device_communication_configuration m_configuration;
+    communication_configuration m_configuration;
 };
 
-namespace device_communication_factory {
-auto create(int vendor_id) -> std::unique_ptr<device_communication>;
-};
+/**
+ * Provides list of devices according to specified device_id.
+ * Returns all devices if device_id is not specified.
+ *
+ * @param device_id.
+ * @return std::vector of devices.
+ */
+std::vector<device_communication> get_device_list(const int &device_id = {});
 
 } // namespace kommpot
 
