@@ -29,6 +29,7 @@ Install required dependencies:
 
 ## Credits
 
-* [libftdi](https://www.intra2net.com/en/developer/libftdi/index.php) - non-modified (some build options were commented out to ease building process), originally distributed under LGPL-2.1 license.
-* [libusb-cmake](https://github.com/libusb/libusb-cmake) - non-modified, originally distributed under LGPL-2.1 license.
+* [googletest](https://github.com/google/googletest) - used as source code, non-modified, originally distributed under BSD-3-Clause license.
+* [libftdi](https://www.intra2net.com/en/developer/libftdi/index.php) - used as source code, non-modified (some build options were modified out to ease building process), originally distributed under LGPL-2.1 license.
+* [libusb-cmake](https://github.com/libusb/libusb-cmake) - used as source code, non-modified (some build options were modified out to ease building process), originally distributed under LGPL-2.1 license.
 * [Elise Navennec - function export implementation](https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html) - used as source code, non-modified, originally distributed under MIT license.

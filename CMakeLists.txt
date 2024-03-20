@@ -153,3 +153,9 @@ message("")
 # Add projects.
 #
 add_subdirectory(libkommpot)
+
+#
+# Add tests.
+#
+enable_testing()
+add_subdirectory(tests)
