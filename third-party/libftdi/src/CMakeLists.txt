@@ -23,7 +23,7 @@ set(c_headers     ${CMAKE_CURRENT_SOURCE_DIR}/ftdi.h CACHE INTERNAL "List of c h
 
 if(IS_COMPILING_SHARED)
   add_library(ftdi1 SHARED ${c_sources})
-  add_dependencies (ftdi1 libusb-1.0)
+  add_dependencies (ftdi1 ${LIBUSB_PROJECT_NAME})
   math(EXPR VERSION_FIXUP "${MAJOR_VERSION} + 1")    # Compatibility with previous releases
   set_target_properties(ftdi1 PROPERTIES VERSION ${VERSION_FIXUP}.${MINOR_VERSION}.0 SOVERSION 2)
   # Prevent clobbering each other during the build
@@ -45,7 +45,7 @@ endif()
 
 if ( STATICLIBS )
   add_library(ftdi1-static STATIC ${c_sources})
-  add_dependencies (ftdi1-static libusb-1.0)
+  add_dependencies (ftdi1-static ${LIBUSB_PROJECT_NAME})
   
   if(PLATFORM_OS_WINDOWS)
     target_link_libraries(ftdi1-static ${LIBUSB_LIBRARIES})

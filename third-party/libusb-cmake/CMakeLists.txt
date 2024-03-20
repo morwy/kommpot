@@ -12,7 +12,7 @@ string(REGEX MATCH "#define LIBUSB_MICRO ([0-9]*)" _ ${VERSIONHEADERDATA})
 set(LIBUSB_VERSION_MICRO ${CMAKE_MATCH_1})
 set(LIBUSB_VERSION "${LIBUSB_VERSION_MAJOR}.${LIBUSB_VERSION_MINOR}.${LIBUSB_VERSION_MICRO}")
 
-project(libusb-1.0
+project(${LIBUSB_PROJECT_NAME}
     DESCRIPTION "A cross-platform library to access USB devices"
     VERSION ${LIBUSB_VERSION}
     LANGUAGES C
@@ -104,17 +104,17 @@ set(LIBUSB_GEN_INCLUDES "${CMAKE_CURRENT_BINARY_DIR}/gen_include")
 generate_config_file()
 
 if(LIBUSB_BUILD_SHARED_LIBS)
-    add_library(libusb-1.0 SHARED)
+    add_library(${LIBUSB_PROJECT_NAME} SHARED)
 else()
-    add_library(libusb-1.0 STATIC)
+    add_library(${LIBUSB_PROJECT_NAME} STATIC)
 endif()
 
-# set_target_properties(libusb-1.0 PROPERTIES
+# set_target_properties(${LIBUSB_PROJECT_NAME} PROPERTIES
 #     PREFIX lib # to be consistent with mainline libusb build system(s)
 # )
 
 # common sources
-target_sources(libusb-1.0 PRIVATE
+target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
     "${LIBUSB_GEN_INCLUDES}/config.h"
     "${LIBUSB_ROOT}/core.c"
     "${LIBUSB_ROOT}/descriptor.c"
@@ -127,20 +127,20 @@ target_sources(libusb-1.0 PRIVATE
     "${LIBUSB_ROOT}/version.h"
     "${LIBUSB_ROOT}/version_nano.h"
 )
-target_include_directories(libusb-1.0
+target_include_directories(${LIBUSB_PROJECT_NAME}
     PRIVATE
         "${LIBUSB_GEN_INCLUDES}"
         "${LIBUSB_ROOT}/os"
 )
 
 if (LIBUSB_TARGETS_INCLUDE_USING_SYSTEM)
-    target_include_directories(libusb-1.0 SYSTEM PUBLIC "${LIBUSB_ROOT}")
+    target_include_directories(${LIBUSB_PROJECT_NAME} SYSTEM PUBLIC "${LIBUSB_ROOT}")
 else()
-    target_include_directories(libusb-1.0 PUBLIC "${LIBUSB_ROOT}")
+    target_include_directories(${LIBUSB_PROJECT_NAME} PUBLIC "${LIBUSB_ROOT}")
 endif()
 
 if(WIN32)
-    target_sources(libusb-1.0 PRIVATE
+    target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
         "${LIBUSB_ROOT}/libusb-1.0.def"
         "${LIBUSB_ROOT}/os/events_windows.c"
         "${LIBUSB_ROOT}/os/events_windows.h"
@@ -154,57 +154,57 @@ if(WIN32)
         "${LIBUSB_ROOT}/os/windows_winusb.h"
         $<$<C_COMPILER_ID:MSVC>:${LIBUSB_ROOT}/libusb-1.0.rc>
     )
-    target_compile_definitions(libusb-1.0 PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS=1>)
-    target_link_libraries(libusb-1.0 PRIVATE windowsapp)
+    target_compile_definitions(${LIBUSB_PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS=1>)
+    target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE windowsapp)
 else()
     # common POSIX/non-Windows sources
-    target_sources(libusb-1.0 PRIVATE
+    target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
         "${LIBUSB_ROOT}/os/events_posix.c"
         "${LIBUSB_ROOT}/os/events_posix.h"
         "${LIBUSB_ROOT}/os/threads_posix.c"
         "${LIBUSB_ROOT}/os/threads_posix.h"
     )
     if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-        target_sources(libusb-1.0 PRIVATE
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
             "${LIBUSB_ROOT}/os/linux_usbfs.c"
             "${LIBUSB_ROOT}/os/linux_usbfs.h"
         )
         if(LIBUSB_ENABLE_UDEV)
-            target_sources(libusb-1.0 PRIVATE
+            target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
                 "${LIBUSB_ROOT}/os/linux_udev.c"
             )
-            target_link_libraries(libusb-1.0 PRIVATE udev)
-            target_compile_definitions(libusb-1.0 PRIVATE HAVE_LIBUDEV=1)
+            target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE udev)
+            target_compile_definitions(${LIBUSB_PROJECT_NAME} PRIVATE HAVE_LIBUDEV=1)
         else()
-            target_sources(libusb-1.0 PRIVATE
+            target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
                 "${LIBUSB_ROOT}/os/linux_netlink.c"
             )
         endif()
         find_package(Threads REQUIRED)
-        target_link_libraries(libusb-1.0 PRIVATE Threads::Threads)
+        target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE Threads::Threads)
     elseif(ANDROID)
-        target_sources(libusb-1.0 PRIVATE
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
             "${LIBUSB_ROOT}/os/linux_netlink.c"
             "${LIBUSB_ROOT}/os/linux_usbfs.c"
             "${LIBUSB_ROOT}/os/linux_usbfs.h"
         )
-        target_link_libraries(libusb-1.0 PRIVATE android log)
+        target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE android log)
     elseif(APPLE)
-        target_sources(libusb-1.0 PRIVATE
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
             "${LIBUSB_ROOT}/os/darwin_usb.c"
             "${LIBUSB_ROOT}/os/darwin_usb.h"
         )
-        target_link_libraries(libusb-1.0 PRIVATE
+        target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE
             "-framework Foundation"
             "-framework IOKit"
             "-framework Security"
         )
     elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
-        target_sources(libusb-1.0 PRIVATE
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
             "${LIBUSB_ROOT}/os/netbsd_usb.c"
         )
     elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-        target_sources(libusb-1.0 PRIVATE
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
             "${LIBUSB_ROOT}/os/openbsd_usb.c"
         )
     else()
@@ -221,6 +221,6 @@ if(LIBUSB_BUILD_EXAMPLES)
 endif()
 
 if(LIBUSB_INSTALL_TARGETS)
-    install(TARGETS libusb-1.0)
+    install(TARGETS ${LIBUSB_PROJECT_NAME})
     install(FILES "${LIBUSB_ROOT}/libusb.h" DESTINATION "include/libusb-1.0")
 endif()

@@ -66,9 +66,11 @@ else()
     set(COMPILATION_TYPE "shared")
 endif()
 
-message("Compiling following dependencies (${COMPILATION_TYPE}):")
+message("Compiling following ${COMPILATION_TYPE} dependencies:")
 
 set(KOMMPOT_LIBRARIES "")
+set(KOMMPOT_DEPENDENCIES ${KOMMPOT_DEPENDENCIES} kommpot)
+
 if(IS_COMPILING_SHARED)
     if(PLATFORM_OS_LINUX)
         set(KOMMPOT_LIBRARIES ${KOMMPOT_LIBRARIES} ${BINARY_OUTPUT_PATH}/libkommpot.so)
@@ -87,6 +89,15 @@ if(IS_COMPILING_LIBUSB)
     if(IS_COMPILING_SHARED)
         set(LIBUSB_BUILD_SHARED_LIBS true)
     endif()
+
+    set(LIBUSB_PROJECT_NAME "")
+    if(PLATFORM_OS_LINUX)
+        set(LIBUSB_PROJECT_NAME usb-1.0)
+    elseif(PLATFORM_OS_WINDOWS)
+        set(LIBUSB_PROJECT_NAME libusb-1.0)
+    endif()
+    
+    set(KOMMPOT_DEPENDENCIES ${KOMMPOT_DEPENDENCIES} ${LIBUSB_PROJECT_NAME})
 
     if(IS_COMPILING_SHARED)
         if(PLATFORM_OS_LINUX)
@@ -112,12 +123,16 @@ if(IS_COMPILING_LIBFTDI)
     endif()
 
     if(IS_COMPILING_SHARED)
+        set(KOMMPOT_DEPENDENCIES ${KOMMPOT_DEPENDENCIES} ftdi1)
+
         if(PLATFORM_OS_LINUX)
             set(KOMMPOT_LIBRARIES ${KOMMPOT_LIBRARIES} ${BINARY_OUTPUT_PATH}/libftdi1.so.2.5.0)
         elseif(PLATFORM_OS_WINDOWS)
             set(KOMMPOT_LIBRARIES ${KOMMPOT_LIBRARIES} ${BINARY_OUTPUT_PATH}/ftdi1.dll)
         endif()
     else()
+        set(KOMMPOT_DEPENDENCIES ${KOMMPOT_DEPENDENCIES} ftdi1-static)
+
         if(PLATFORM_OS_LINUX)
             set(KOMMPOT_LIBRARIES ${KOMMPOT_LIBRARIES} ${BINARY_OUTPUT_PATH}/libftdi1.a.2.5.0)
         elseif(PLATFORM_OS_WINDOWS)
@@ -129,6 +144,7 @@ if(IS_COMPILING_LIBFTDI)
     add_subdirectory(third-party/libftdi)
 endif()
 
+message("KOMMPOT_DEPENDENCIES: ${KOMMPOT_DEPENDENCIES}")
 message("KOMMPOT_LIBRARIES: ${KOMMPOT_LIBRARIES}")
 
 message("")
