@@ -1,0 +1,7 @@
+#
+# Following udev rules are required for kommpot library access to USB devices.
+#
+# @author eljaywasi
+# @link https://forums.linuxmint.com/viewtopic.php?p=709227&sid=16a91e5a0c1b59732cff376f8bdd1a49#p709227
+#
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="*", ATTR{idProduct}=="*", MODE="0666", NAME="bus/usb/$env{BUSNUM}/$env{DEVNUM}", RUN+="/bin/chmod 0666 %c"
