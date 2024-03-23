@@ -23,6 +23,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release]
         c_compiler: [gcc, clang, cl]
+        library_type: [static, shared]
         include:
           - os: windows-latest
             c_compiler: cl
@@ -49,22 +50,23 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build/" >> "$GITHUB_OUTPUT"
-        echo "shared-build-output-dir=${{ github.workspace }}/build/shared" >> "$GITHUB_OUTPUT"
-        echo "static-build-output-dir=${{ github.workspace }}/build/static" >> "$GITHUB_OUTPUT"
 
-    - name: Install dependencies (Ubuntu)
+    - name: Install dependencies (Ubuntu-only)
       run: |
         sudo apt update
         sudo apt install libudev-dev ninja-build
       if: matrix.os == 'ubuntu-latest'
 
-    - name: Configure CMake
+    - name: Configure CMake for static libraries
       run: |
-        cmake -B ${{ steps.strings.outputs.shared-build-output-dir }} -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }}
-        cmake -B ${{ steps.strings.outputs.static-build-output-dir }} -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S ${{ github.workspace }}
+        cmake -B ${{ steps.strings.outputs.build-output-dir }} -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DIS_COMPILING_STATIC=true -DIS_COMPILING_SHARED=false 
+      if: matrix.library_type == 'static'
 
-    - name: Build shared libraries
-      run: cmake --build ${{ steps.strings.outputs.shared-build-output-dir }} --config ${{ matrix.build_type }}
+    - name: Configure CMake for shared libraries
+      run: |
+        cmake -B ${{ steps.strings.outputs.build-output-dir }} -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DIS_COMPILING_STATIC=false -DIS_COMPILING_SHARED=true 
+      if: matrix.library_type == 'shared'
 
-    - name: Build static libraries
-      run: cmake --build ${{ steps.strings.outputs.static-build-output-dir }} --config ${{ matrix.build_type }}
+    - name: Build libraries
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
