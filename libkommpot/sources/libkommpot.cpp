@@ -3,13 +3,10 @@
 #include <utility>
 
 kommpot::version::version(const uint8_t major, const uint8_t minor, const uint8_t micro,
-    const uint8_t nano, std::string git_hash)
-    : m_major(major)
-    , m_minor(minor)
-    , m_micro(micro)
-    , m_nano(nano)
-    , m_git_hash(std::move(git_hash))
-{}
+                          const uint8_t nano, std::string git_hash)
+    : m_major(major), m_minor(minor), m_micro(micro), m_nano(nano), m_git_hash(std::move(git_hash))
+{
+}
 
 auto kommpot::version::major() const noexcept -> uint8_t
 {
@@ -45,5 +42,10 @@ auto kommpot::version::to_string() const noexcept -> std::string
 auto kommpot::get_version() noexcept -> kommpot::version
 {
     return {PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_MICRO,
-        PROJECT_VERSION_NANO, PROJECT_VERSION_SHA};
+            PROJECT_VERSION_NANO, PROJECT_VERSION_SHA};
+}
+
+std::vector<kommpot::device_communication> kommpot::get_device_list(const int &device_id)
+{
+    return std::vector<kommpot::device_communication>();
 }

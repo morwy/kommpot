@@ -28,3 +28,10 @@ endif()
 add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${PROJECT_FOLDER_FILES})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LIBRARY_EXPORT)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /MTd /W2 /c)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WIN_EXPORT)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
+endif()
