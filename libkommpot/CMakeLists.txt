@@ -8,6 +8,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/sources)
+include_directories(${PROJECT_ROOT_PATH})
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../third-party/spdlog/include/)
 
 #
 # Add source files recursively.
