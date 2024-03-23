@@ -31,7 +31,7 @@ endforeach()
 #
 # Add kommpot source files recursively.
 #
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../kommpot/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../libkommpot/include)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../third-party)
 
 set(FILE_EXTENSIONS *.h *.hpp *.c *.cpp)
