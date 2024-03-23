@@ -31,6 +31,11 @@ add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${PROJECT_FOLDER_FILES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE LIBRARY_EXPORT)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /MD /c)
+    target_compile_options(${PROJECT_NAME} PRIVATE /MD)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN_EXPORT)
 endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${INTERNAL_LIBRARIES})
+foreach (INTERNAL_DEPENDENCY IN LISTS INTERNAL_DEPENDENCIES)
+    add_dependencies(${PROJECT_NAME} ${INTERNAL_DEPENDENCY})
+endforeach()
