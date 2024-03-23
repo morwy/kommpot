@@ -72,6 +72,15 @@ enum class endpoint_type
 struct communication_configuration
 {};
 
+/**
+ * @brief describes parameters of device communication.
+ */
+struct communication_information
+{
+    std::string name = "";
+    std::string serial_number = "";
+};
+
 struct communication_error
 {
     uint32_t code = 0;
@@ -81,7 +90,7 @@ struct communication_error
 class EXPORTED device_communication
 {
 public:
-    device_communication() = default;
+    device_communication(const communication_information &information);
     virtual ~device_communication() = default;
 
     /**
@@ -118,11 +127,20 @@ public:
     }
 
     /**
-     * @brief opens device communication via stated id.
-     * @param id states unique id by which device may be identified.
+     * @brief returns current device_communication object information.
+     * @return information as communication_information structure.
+     * {@link communication_information communication_information}
+     */
+    [[nodiscard]] virtual auto information() const -> communication_information
+    {
+        return m_information;
+    }
+
+    /**
+     * @brief opens device communication.
      * @return true if opened successfully, false if any error happened.
      */
-    virtual auto open(const std::string &id) -> bool = 0;
+    virtual auto open() -> bool = 0;
 
     /**
      * @brief states if device is already opened.
@@ -165,6 +183,7 @@ protected:
 
     bool m_is_custom_configuration_set = false;
     communication_configuration m_configuration;
+    communication_information m_information;
 };
 
 /**
@@ -174,7 +193,8 @@ protected:
  * @param device_id.
  * @return std::vector of devices.
  */
-std::vector<device_communication> EXPORTED get_device_list(const int &device_id = {});
+std::vector<std::unique_ptr<kommpot::device_communication>> EXPORTED get_device_list(
+    const int &device_id = {});
 
 } // namespace kommpot
 

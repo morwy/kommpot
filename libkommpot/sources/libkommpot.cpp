@@ -1,12 +1,17 @@
 #include "libkommpot.h"
 
+#include "communication_libusb.h"
+
 #include <utility>
 
 kommpot::version::version(const uint8_t major, const uint8_t minor, const uint8_t micro,
-                          const uint8_t nano, std::string git_hash)
-    : m_major(major), m_minor(minor), m_micro(micro), m_nano(nano), m_git_hash(std::move(git_hash))
-{
-}
+    const uint8_t nano, std::string git_hash)
+    : m_major(major)
+    , m_minor(minor)
+    , m_micro(micro)
+    , m_nano(nano)
+    , m_git_hash(std::move(git_hash))
+{}
 
 auto kommpot::version::major() const noexcept -> uint8_t
 {
@@ -42,10 +47,25 @@ auto kommpot::version::to_string() const noexcept -> std::string
 auto kommpot::get_version() noexcept -> kommpot::version
 {
     return {PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_MICRO,
-            PROJECT_VERSION_NANO, PROJECT_VERSION_SHA};
+        PROJECT_VERSION_NANO, PROJECT_VERSION_SHA};
 }
 
-std::vector<kommpot::device_communication> kommpot::get_device_list(const int &device_id)
+kommpot::device_communication::device_communication(const communication_information &information)
 {
-    return std::vector<kommpot::device_communication>();
+    m_information = information;
+}
+
+std::vector<std::unique_ptr<kommpot::device_communication>> kommpot::get_device_list(
+    const int &device_id)
+{
+    std::vector<std::unique_ptr<kommpot::device_communication>> device_list;
+
+    /**
+     * @brief libusb devices.
+     */
+    auto libusb_devices = communication_libusb::get_available_devices();
+    device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(libusb_devices)),
+        std::make_move_iterator(std::end(libusb_devices)));
+
+    return device_list;
 }
