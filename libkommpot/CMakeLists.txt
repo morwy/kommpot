@@ -21,10 +21,8 @@ endforeach()
 
 if(IS_COMPILING_SHARED)
     set(LIBRARY_TYPE SHARED)
-    set(MSVC_COMPILATION_PARAMETER "/MD")
 else()
     set(LIBRARY_TYPE STATIC)
-    set(MSVC_COMPILATION_PARAMETER "/MD")
 endif()
 
 add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${PROJECT_FOLDER_FILES})
@@ -32,6 +30,6 @@ add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${PROJECT_FOLDER_FILES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE LIBRARY_EXPORT)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc ${MSVC_COMPILATION_PARAMETER} /c)
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /MD /c)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN_EXPORT)
 endif()
