@@ -150,6 +150,12 @@ message("KOMMPOT_LIBRARIES: ${KOMMPOT_LIBRARIES}")
 message("")
 
 #
+# State global include libraries.
+#
+include_directories(${PROJECT_ROOT_PATH})
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../third-party/spdlog/include/)
+
+#
 # Add projects.
 #
 add_subdirectory(libkommpot)
