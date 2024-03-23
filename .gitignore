@@ -6,6 +6,9 @@ build
 .vs
 .vscode
 
+# Qt files.
+CMakeLists.txt.user
+
 # Prerequisites
 *.d
 
