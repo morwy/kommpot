@@ -8,15 +8,16 @@
 
 using namespace testing;
 
-TEST(kommpot_tests, library_version)
+TEST(kommpot_general, library_version)
 {
     const kommpot::version version = kommpot::get_version();
     ASSERT_THAT(version.to_string().size(), Gt(0));
 }
 
-TEST(kommpot_tests, empty_device_list)
+TEST(kommpot_general, empty_device_list)
 {
-    const std::vector<kommpot::device_communication> device_list = kommpot::get_device_list(0);
+    const std::vector<std::unique_ptr<kommpot::device_communication>> device_list =
+        kommpot::get_device_list(0);
     ASSERT_THAT(device_list.size(), Eq(0));
 }
 
