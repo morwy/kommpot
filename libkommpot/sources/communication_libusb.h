@@ -12,7 +12,7 @@ class communication_libusb : public kommpot::device_communication
 public:
     communication_libusb(const kommpot::communication_information &information);
 
-    static auto get_available_devices()
+    static auto get_available_devices(const kommpot::device_identification &identification)
         -> std::vector<std::unique_ptr<kommpot::device_communication>>;
 
     auto open() -> bool override;
@@ -34,8 +34,7 @@ private:
 
     static auto read_descriptor(libusb_device_handle *device_handle, uint8_t descriptor_index)
         -> std::string;
-    static auto get_serial_number(
-        libusb_device_handle *device_handle, uint8_t serial_number_descriptor_index) -> std::string;
+    static auto get_port_path(libusb_device_handle *device_handle) -> std::string;
 };
 
 #endif // COMMUNICATION_LIBUSB_H

@@ -10,7 +10,8 @@ communication_libusb::communication_libusb(const kommpot::communication_informat
     : kommpot::device_communication(information)
 {}
 
-auto communication_libusb::get_available_devices()
+auto communication_libusb::get_available_devices(
+    const kommpot::device_identification &identification)
     -> std::vector<std::unique_ptr<kommpot::device_communication>>
 {
     std::vector<std::unique_ptr<kommpot::device_communication>> devices;
@@ -38,10 +39,34 @@ auto communication_libusb::get_available_devices()
         }
 
         /**
-         * Skip FTDI devices, since they will be handled by ftdi_access_io.
+         * Skip FTDI devices, since they will be handled by communication_libftdi.
          */
         if (device_description.idVendor == M_FTDI_VENDOR_ID)
         {
+            continue;
+        }
+
+        /**
+         * Filter device by VendorID.
+         */
+        if (identification.vendor_id != 0x0000 &&
+            identification.vendor_id != device_description.idVendor)
+        {
+            spdlog::info("Found device VID{}:PID{}, requested VID{}, skipping.",
+                device_description.idVendor, device_description.idProduct,
+                identification.vendor_id);
+            continue;
+        }
+
+        /**
+         * Filter device by ProductID.
+         */
+        if (identification.product_id != 0x0000 &&
+            identification.product_id != device_description.idProduct)
+        {
+            spdlog::info("Found device VID{}:PID{}, requested PID{}, skipping.",
+                device_description.idVendor, device_description.idProduct,
+                identification.product_id);
             continue;
         }
 
@@ -54,17 +79,37 @@ auto communication_libusb::get_available_devices()
             continue;
         }
 
-        const std::string manufacturer =
-            read_descriptor(device_handle, device_description.iManufacturer);
-        const std::string product = read_descriptor(device_handle, device_description.iProduct);
-        const std::string serial_number =
-            get_serial_number(device_handle, device_description.iSerialNumber);
+        kommpot::communication_information information;
+        information.name = read_descriptor(device_handle, device_description.iProduct);
+        information.manufacturer = read_descriptor(device_handle, device_description.iManufacturer);
+        information.serial_number =
+            read_descriptor(device_handle, device_description.iSerialNumber);
+        information.port = get_port_path(device_handle);
+        information.vendor_id = device_description.idVendor;
+        information.product_id = device_description.idProduct;
 
         libusb_close(device_handle);
 
-        kommpot::communication_information information;
-        information.name = product;
-        information.serial_number = serial_number;
+        /**
+         * Filter device by serial number.
+         */
+        if (!identification.serial_number.empty() &&
+            identification.serial_number != information.serial_number)
+        {
+            spdlog::info("Found device {}, requested {}, skipping.", identification.serial_number,
+                information.serial_number);
+            continue;
+        }
+
+        /**
+         * Filter device by port.
+         */
+        if (!identification.port.empty() && identification.port != information.port)
+        {
+            spdlog::info("Found device at port {}, requested at port {}, skipping.",
+                identification.port, information.port);
+            continue;
+        }
 
         std::unique_ptr<kommpot::device_communication> device =
             std::make_unique<communication_libusb>(information);
@@ -122,7 +167,7 @@ auto communication_libusb::open() -> bool
         }
 
         const std::string device_serial_number =
-            get_serial_number(device_handle, device_description.iSerialNumber);
+            read_descriptor(device_handle, device_description.iSerialNumber);
         if (m_information.serial_number != device_serial_number)
         {
             libusb_close(device_handle);
@@ -216,45 +261,31 @@ std::string communication_libusb::read_descriptor(
     return descriptor_text;
 }
 
-auto communication_libusb::get_serial_number(
-    libusb_device_handle *device_handle, uint8_t serial_number_descriptor_index) -> std::string
+auto communication_libusb::get_port_path(libusb_device_handle *device_handle) -> std::string
 {
-    std::string device_serial_number = "";
-    if (serial_number_descriptor_index != 0)
+    constexpr uint32_t max_usb_tiers = 7;
+    std::vector<uint8_t> port_numbers(max_usb_tiers, 0);
+    int result_code = libusb_get_port_numbers(
+        libusb_get_device(device_handle), port_numbers.data(), port_numbers.size());
+    if (result_code <= 0)
     {
-        device_serial_number = read_descriptor(device_handle, serial_number_descriptor_index);
+        spdlog::error("libusb_get_port_numbers() failed with error {} [{}]",
+            libusb_error_name(result_code), result_code);
+        return std::string();
     }
-    else
+
+    port_numbers.resize(result_code);
+
+    std::ostringstream stream;
+    for (size_t port_index = 0; port_index < port_numbers.size(); port_index++)
     {
-        constexpr uint32_t max_usb_tiers = 7;
-        std::vector<uint8_t> port_numbers(max_usb_tiers, 0);
-        int result_code = libusb_get_port_numbers(
-            libusb_get_device(device_handle), port_numbers.data(), port_numbers.size());
-        if (result_code <= 0)
+        stream << std::to_string(port_numbers[port_index]);
+
+        if (port_index != (port_numbers.size() - 1))
         {
-            spdlog::error("libusb_get_port_numbers() failed with error {} [{}]",
-                libusb_error_name(result_code), result_code);
-        }
-        else
-        {
-            port_numbers.resize(result_code);
-
-            std::ostringstream stream;
-            stream << std::string(M_ARTIFICIAL_ID_PREFIX.begin(), M_ARTIFICIAL_ID_PREFIX.end() - 1);
-
-            for (size_t port_index = 0; port_index < port_numbers.size(); port_index++)
-            {
-                stream << std::to_string(port_numbers[port_index]);
-
-                if (port_index != (port_numbers.size() - 1))
-                {
-                    stream << ':';
-                }
-            }
-
-            device_serial_number = stream.str();
+            stream << ':';
         }
     }
 
-    return device_serial_number;
+    return stream.str();
 }

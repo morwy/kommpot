@@ -56,14 +56,14 @@ kommpot::device_communication::device_communication(const communication_informat
 }
 
 std::vector<std::unique_ptr<kommpot::device_communication>> kommpot::get_device_list(
-    const int &device_id)
+    const device_identification &identification)
 {
     std::vector<std::unique_ptr<kommpot::device_communication>> device_list;
 
     /**
      * @brief libusb devices.
      */
-    auto libusb_devices = communication_libusb::get_available_devices();
+    auto libusb_devices = communication_libusb::get_available_devices(identification);
     device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(libusb_devices)),
         std::make_move_iterator(std::end(libusb_devices)));
 

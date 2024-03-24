@@ -78,13 +78,41 @@ struct communication_configuration
 struct communication_information
 {
     std::string name = "";
+    std::string manufacturer = "";
     std::string serial_number = "";
+    std::string port = "";
+    uint16_t vendor_id = 0x0000;
+    uint16_t product_id = 0x0000;
 };
 
 struct communication_error
 {
     uint32_t code = 0;
     std::string message = "";
+};
+
+/**
+ * @brief describes any identification parameters of device.
+ */
+struct device_identification
+{
+    /**
+     * @category general identification parameters.
+     * @warning unreliable for unique detection, some devices may have identical serial numbers.
+     */
+    std::string serial_number = "";
+
+    /**
+     * @category USB identification parameters.
+     * @attention use 0x0000 value as alternative to wildcard symbol.
+     */
+    uint16_t vendor_id = 0x0000;
+    uint16_t product_id = 0x0000;
+
+    /**
+     * reliable for unique detection.
+     */
+    std::string port = "";
 };
 
 class EXPORTED device_communication
@@ -175,12 +203,6 @@ public:
         -> std::string = 0;
 
 protected:
-    /**
-     * @brief states that device doesn't have native ID and uses artificial ID for stating its
-     * uniqueness. Artificial ID is composed from the USB port path.
-     */
-    constexpr static const std::array<char, 6> M_ARTIFICIAL_ID_PREFIX = {"PORT:"};
-
     bool m_is_custom_configuration_set = false;
     communication_configuration m_configuration;
     communication_information m_information;
@@ -194,7 +216,7 @@ protected:
  * @return std::vector of devices.
  */
 std::vector<std::unique_ptr<kommpot::device_communication>> EXPORTED get_device_list(
-    const int &device_id = {});
+    const device_identification &identification = {});
 
 } // namespace kommpot
 
