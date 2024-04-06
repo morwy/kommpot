@@ -30,6 +30,8 @@ else (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARIES)
   #  PATHS ${PC_LIBUSB_LIBDIR} ${PC_LIBUSB_LIBRARY_DIRS})
   if(PLATFORM_OS_WINDOWS)
     set(LIBUSB_LIBRARIES ${BINARY_OUTPUT_PATH}/libusb-1.0.lib)
+  elseif(PLATFORM_OS_MACOS)
+    set(LIBUSB_LIBRARIES ${BINARY_OUTPUT_PATH}/libusb-1.0.dylib)
   endif()
 
   include(FindPackageHandleStandardArgs)

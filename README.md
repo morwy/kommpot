@@ -12,6 +12,14 @@ Install required dependencies:
 sudo apt install cmake ninja-build -y
 ```
 
+#### MacOS
+
+Install required dependencies:
+
+```bash
+brew install cmake ninja
+```
+
 #### Windows
 
 Install required dependencies:
