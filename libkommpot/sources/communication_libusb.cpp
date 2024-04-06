@@ -1,5 +1,6 @@
 #include "communication_libusb.h"
 
+#include "communication_libftdi.h"
 #include "third-party/spdlog/include/spdlog/spdlog.h"
 
 #include <sstream>
@@ -41,7 +42,7 @@ auto communication_libusb::get_available_devices(
         /**
          * Skip FTDI devices, since they will be handled by communication_libftdi.
          */
-        if (device_description.idVendor == M_FTDI_VENDOR_ID)
+        if (device_description.idVendor == communication_libftdi::VENDOR_ID)
         {
             continue;
         }
@@ -139,6 +140,7 @@ auto communication_libusb::open() -> bool
         {
             spdlog::error("libusb_init() failed with error {} [{}]", libusb_error_name(result_code),
                 result_code);
+            return false;
         }
     }
 
