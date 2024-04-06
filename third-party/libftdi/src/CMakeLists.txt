@@ -38,6 +38,8 @@ if(IS_COMPILING_SHARED)
   # Dependencies
   if(PLATFORM_OS_WINDOWS)
     target_link_libraries(ftdi1 ${LIBUSB_LIBRARIES})
+  elseif(PLATFORM_OS_MACOS)
+    target_link_libraries(ftdi1 ${LIBUSB_LIBRARIES})
   endif()
   
   install ( TARGETS ftdi1
@@ -53,6 +55,8 @@ if ( STATICLIBS )
   add_dependencies (ftdi1-static ${LIBUSB_PROJECT_NAME})
   
   if(PLATFORM_OS_WINDOWS)
+    target_link_libraries(ftdi1-static ${LIBUSB_LIBRARIES})
+  elseif(PLATFORM_OS_MACOS)
     target_link_libraries(ftdi1-static ${LIBUSB_LIBRARIES})
   endif()
 

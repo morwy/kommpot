@@ -6,6 +6,9 @@ build
 .vs
 .vscode
 
+# MacOS files.
+.DS_Store
+
 # Qt files.
 CMakeLists.txt.user
 
