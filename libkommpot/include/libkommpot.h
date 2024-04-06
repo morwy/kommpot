@@ -70,7 +70,13 @@ enum class endpoint_type
  * @brief states specific configuration required for opening the device communication.
  */
 struct communication_configuration
-{};
+{
+    /**
+     * FTDI connection settings
+     */
+    uint8_t bit_mode = 0;
+    uint8_t bit_mask = 0;
+};
 
 /**
  * @brief describes parameters of device communication.
@@ -199,8 +205,8 @@ public:
      */
     virtual auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool = 0;
 
-    [[nodiscard]] virtual auto get_error_string(const uint32_t &native_error_code) const
-        -> std::string = 0;
+    [[nodiscard]] virtual auto get_error_string(
+        const uint32_t &native_error_code) const -> std::string = 0;
 
 protected:
     bool m_is_custom_configuration_set = false;

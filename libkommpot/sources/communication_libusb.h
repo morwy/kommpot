@@ -28,7 +28,6 @@ public:
 private:
     static libusb_context *m_libusb_context;
     libusb_device_handle *m_device_handle = nullptr;
-    static constexpr uint32_t M_FTDI_VENDOR_ID = 0x0403;
     static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;
     static constexpr uint32_t M_MAX_USB_DESCRIPTOR_LENGTH_BYTES = 255;
 
