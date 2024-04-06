@@ -69,7 +69,8 @@ else()
 endif()
 
 if(PLATFORM_OS_MACOS)
-    set(CMAKE_SKIP_RPATH false)
+    set(MACOSX_RPATH false)
+    #set(CMAKE_SKIP_RPATH false)
     #set(CMAKE_SKIP_BUILD_RPATH true)
 endif()
 
