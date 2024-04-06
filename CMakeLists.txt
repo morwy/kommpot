@@ -68,6 +68,11 @@ else()
     set(COMPILATION_TYPE "shared")
 endif()
 
+if(PLATFORM_OS_MACOS)
+    set(CMAKE_SKIP_RPATH false)
+    #set(CMAKE_SKIP_BUILD_RPATH true)
+endif()
+
 message("Compiling following ${COMPILATION_TYPE} dependencies:")
 
 set(KOMMPOT_LIBRARIES "")
