@@ -18,8 +18,8 @@ jobs:
         DESTINATION_BRANCH: main
         MESSAGE: "chore(release): prepare for upcoming release (ProjectVersion.cmake)"
       run: |
-        python -m IncrementProjectVersion INCREMENT_VERSION
-        NEW_VERSION=$(python -m IncrementProjectVersion GET_VERSION)
+        python IncrementProjectVersion INCREMENT_VERSION
+        NEW_VERSION=$(python IncrementProjectVersion GET_VERSION)
         echo "NEW_TAG_NAME=$NEW_VERSION" >> $GITHUB_OUTPUT
         export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
         export CONTENT=$( base64 -i $FILE_TO_COMMIT )
