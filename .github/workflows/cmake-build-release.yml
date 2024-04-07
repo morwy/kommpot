@@ -78,8 +78,8 @@ jobs:
     - name: Create release entry
       uses: ncipollo/release-action@v1
       with:
-        body: "${{ steps.version.outputs.NEW_TAG_NAME }}"
-        tag: "v${{ steps.git-cliff-release-entry.outputs.content }}"
+        body: "${{ steps.git-cliff-release-entry.outputs.content }}"
+        tag: "v${{ steps.version.outputs.NEW_TAG_NAME }}"
 
   build-binaries:
     runs-on: ${{ matrix.os }}
