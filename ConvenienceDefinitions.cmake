@@ -5,7 +5,7 @@ include(ProcessorCount)
 ProcessorCount(CPU_CORE_COUNT)
 message("CPU core count: ${CPU_CORE_COUNT}.")
 
-if(NOT DEFINED CMAKE_BUILD_TYPE)
+if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
     message("CMake macro CMAKE_BUILD_TYPE was undefined, falling back to \"Release\".")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
@@ -15,6 +15,8 @@ message("Determined build options:")
 #
 # Operational system macro.
 #
+message("  - Build type: ${CMAKE_BUILD_TYPE}.")
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     message("  - Operational system: Linux.")
     set(PLATFORM_OS_LINUX true)
