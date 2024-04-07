@@ -153,7 +153,12 @@ jobs:
         ignore_case: true
         fail: true
 
-    - name: Archive built binaries
+    - name: Archive built binaries (Windows-only)
+      if: matrix.os == 'windows-latest'
+      run: Compress-Archive -Path ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -Destination ${{ steps.strings.outputs.archive-name }}
+
+    - name: Archive built binaries (non-Windows)
+      if: matrix.os != 'windows-latest'
       run: zip ${{ steps.strings.outputs.archive-name }} ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -r
 
     - name: Upload built binaries
