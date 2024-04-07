@@ -159,7 +159,7 @@ jobs:
     - name: Upload built binaries
       uses: actions/upload-artifact@v4.3.1
       with:
-        name: artifacts-${{ matrix.os }}
+        name: artifacts-${{ matrix.os }}-${{ matrix.c_compiler }}
         path: ${{ steps.strings.outputs.archive-name }}
 
   create-release:
@@ -170,17 +170,22 @@ jobs:
     - name: Download built binaries (Windows)
       uses: actions/download-artifact@v4.1.4
       with:
-        name: artifacts-windows-latest
+        name: artifacts-windows-latest-cl
 
     - name: Download built binaries (Linux)
       uses: actions/download-artifact@v4.1.4
       with:
-        name: artifacts-ubuntu-latest
+        name: artifacts-ubuntu-latest-clang
+
+    - name: Download built binaries (Linux)
+      uses: actions/download-artifact@v4.1.4
+      with:
+        name: artifacts-ubuntu-latest-gcc
 
     - name: Download built binaries (MacOS)
       uses: actions/download-artifact@v4.1.4
       with:
-        name: artifacts-macos-latest
+        name: artifacts-macos-latest-clang
 
     - name: Create release entry
       uses: ncipollo/release-action@v1
