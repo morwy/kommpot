@@ -69,3 +69,10 @@ jobs:
 
     - name: Build libraries
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Check binaries
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "${{ steps.strings.outputs.build-output-dir }}/*"
+        ignore_case: true
+        fail: true
