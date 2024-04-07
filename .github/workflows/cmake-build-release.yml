@@ -5,6 +5,8 @@ on: workflow_dispatch
 jobs:
   increment-version:
     runs-on: "ubuntu-latest"
+    permissions:
+        contents: write
     outputs:
       NEW_TAG_NAME: ${{ steps.version.outputs.NEW_TAG_NAME }}
       RELEASE_ENTRY_CONTENT: ${{ steps.git-cliff-release-entry.outputs.content }}
