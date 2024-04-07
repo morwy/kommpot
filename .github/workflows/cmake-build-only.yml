@@ -48,9 +48,11 @@ jobs:
     - name: Set reusable strings
       id: strings
       shell: bash
+      env:
+        path-separator: ${{ (startsWith(matrix.os, 'windows-latest') && '\\') || '/' }}
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build/" >> "$GITHUB_OUTPUT"
-        echo "binary-output-dir=${{ github.workspace }}/bin/${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}"_x86_64/Release/ >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}${{ env.path-separator }}build" >> "$GITHUB_OUTPUT"
+        echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}"_x86_64${{ env.path-separator }}Release >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies (Ubuntu-only)
       run: |
@@ -73,7 +75,9 @@ jobs:
 
     - name: Check binaries
       uses: andstor/file-existence-action@v2
+      env:
+        path-separator: ${{ (startsWith(matrix.os, 'windows-latest') && '\\') || '/' }}
       with:
-        files: "${{ steps.strings.outputs.binary-output-dir }}/*"
+        files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}*"
         ignore_case: true
         fail: true

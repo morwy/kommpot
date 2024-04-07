@@ -15,6 +15,8 @@ message("Determined build options:")
 #
 # Operational system macro.
 #
+message("  - Build type: ${CMAKE_BUILD_TYPE}.")
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     message("  - Operational system: Linux.")
     set(PLATFORM_OS_LINUX true)
