@@ -73,7 +73,7 @@ jobs:
     - name: Build libraries
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-      # Ignore Windows OS because this actions has bug with wildcards there.
+      # This action has bug with wildcards under Windows OS, thus ignore it.
     - name: Check binaries (non-Windows)
       uses: andstor/file-existence-action@v2
       if: matrix.os != 'windows-latest'
