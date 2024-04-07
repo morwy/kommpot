@@ -83,6 +83,8 @@ jobs:
 
   build-binaries:
     runs-on: ${{ matrix.os }}
+    permissions:
+        contents: write
     needs: increment-version
     env:
       path-separator: ${{ (startsWith(matrix.os, 'windows-latest') && '\') || '/' }}
