@@ -12,6 +12,9 @@ build
 # Qt files.
 CMakeLists.txt.user
 
+# Temp Python files.
+*.pyc
+
 # Prerequisites
 *.d
 

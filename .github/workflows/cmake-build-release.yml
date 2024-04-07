@@ -5,17 +5,27 @@ on: workflow_dispatch
 jobs:
   increment-version:
     runs-on: "ubuntu-latest"
+    permissions:
+        contents: write
     outputs:
       NEW_TAG_NAME: ${{ steps.version.outputs.NEW_TAG_NAME }}
-      RELEASE_ENTRY_CONTENT: ${{ steps.git-cliff-release-entry.outputs.content }}
 
     steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Read branch name
+      id: read_branch
+      shell: bash
+      run: echo "branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+      
     - name: Increase package version
       id: version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_TO_COMMIT: ProjectVersion.cmake
-        DESTINATION_BRANCH: main
+        DESTINATION_BRANCH: ${{ steps.read_branch.outputs.branch_name }}
         MESSAGE: "chore(release): prepare for upcoming release (ProjectVersion.cmake)"
       run: |
         python -m IncrementProjectVersion INCREMENT_VERSION
@@ -53,7 +63,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_TO_COMMIT: CHANGELOG.md
-        DESTINATION_BRANCH: main
+        DESTINATION_BRANCH: ${{ steps.read_branch.outputs.branch_name }}
         MESSAGE: "chore(release): prepare for upcoming release (CHANGELOG.md)"
       run: |
         export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
@@ -65,8 +75,16 @@ jobs:
           --field branch="$DESTINATION_BRANCH" \
           --field sha="$SHA"
 
+    - name: Create release entry
+      uses: ncipollo/release-action@v1
+      with:
+        body: "${{ steps.git-cliff-release-entry.outputs.content }}"
+        tag: "v${{ steps.version.outputs.NEW_TAG_NAME }}"
+
   build-binaries:
     runs-on: ${{ matrix.os }}
+    permissions:
+        contents: write
     needs: increment-version
     env:
       path-separator: ${{ (startsWith(matrix.os, 'windows-latest') && '\') || '/' }}
@@ -110,7 +128,7 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "archive-name=kommpot-${{ needs.increment-version.outputs.NEW_TAG_NAME }}-${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}_x86_64.zip" >> "$GITHUB_OUTPUT"
+        echo "archive-name=kommpot-${{ needs.increment-version.outputs.NEW_TAG_NAME }}-${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}-${{ matrix.library_type }}-${{ matrix.c_compiler }}-x86-64.zip" >> "$GITHUB_OUTPUT"
         echo "build-output-dir=${{ github.workspace }}${{ env.path-separator }}build" >> "$GITHUB_OUTPUT"
         echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}_x86_64${{ env.path-separator }}${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
 
@@ -142,38 +160,18 @@ jobs:
         ignore_case: true
         fail: true
 
-    - name: Archive built binaries
+    - name: Archive built binaries (Windows-only)
+      if: matrix.os == 'windows-latest'
+      run: Compress-Archive -Path ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -Destination ${{ steps.strings.outputs.archive-name }}
+
+    - name: Archive built binaries (non-Windows)
+      if: matrix.os != 'windows-latest'
       run: zip ${{ steps.strings.outputs.archive-name }} ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -r
 
     - name: Upload built binaries
-      uses: actions/upload-artifact@v4.3.1
+      uses: svenstaro/upload-release-action@v2
       with:
-        name: artifacts-${{ matrix.os }}
-        path: ${{ steps.strings.outputs.archive-name }}
-
-  create-release:
-    runs-on: "ubuntu-latest"
-    needs: [increment-version, build-binaries]
-
-    steps:
-    - name: Download built binaries (Windows)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-windows-latest
-
-    - name: Download built binaries (Linux)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-ubuntu-latest
-
-    - name: Download built binaries (MacOS)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-macos-latest
-
-    - name: Create release entry
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "*.zip"
-        body: "${{ needs.increment-version.outputs.RELEASE_ENTRY_CONTENT }}"
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ steps.strings.outputs.archive-name }}
+        asset_name: ${{ steps.strings.outputs.archive-name }}
         tag: "v${{ needs.increment-version.outputs.NEW_TAG_NAME }}"
