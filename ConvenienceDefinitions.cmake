@@ -5,7 +5,7 @@ include(ProcessorCount)
 ProcessorCount(CPU_CORE_COUNT)
 message("CPU core count: ${CPU_CORE_COUNT}.")
 
-if(NOT DEFINED CMAKE_BUILD_TYPE)
+if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
     message("CMake macro CMAKE_BUILD_TYPE was undefined, falling back to \"Release\".")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
