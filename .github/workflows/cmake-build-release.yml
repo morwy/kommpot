@@ -9,7 +9,6 @@ jobs:
         contents: write
     outputs:
       NEW_TAG_NAME: ${{ steps.version.outputs.NEW_TAG_NAME }}
-      RELEASE_ENTRY_CONTENT: ${{ steps.git-cliff-release-entry.outputs.content }}
 
     steps:
     - uses: actions/checkout@v4
@@ -75,6 +74,12 @@ jobs:
           --field encoding="base64" \
           --field branch="$DESTINATION_BRANCH" \
           --field sha="$SHA"
+
+    - name: Create release entry
+      uses: ncipollo/release-action@v1
+      with:
+        body: "${{ steps.version.outputs.NEW_TAG_NAME }}"
+        tag: "v${{ steps.git-cliff-release-entry.outputs.content }}"
 
   build-binaries:
     runs-on: ${{ matrix.os }}
@@ -162,39 +167,9 @@ jobs:
       run: zip ${{ steps.strings.outputs.archive-name }} ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -r
 
     - name: Upload built binaries
-      uses: actions/upload-artifact@v4.3.1
+      uses: svenstaro/upload-release-action@v2
       with:
-        name: artifacts-${{ matrix.os }}-${{ matrix.c_compiler }}
-        path: ${{ steps.strings.outputs.archive-name }}
-
-  create-release:
-    runs-on: "ubuntu-latest"
-    needs: [increment-version, build-binaries]
-
-    steps:
-    - name: Download built binaries (Windows)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-windows-latest-cl
-
-    - name: Download built binaries (Linux)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-ubuntu-latest-clang
-
-    - name: Download built binaries (Linux)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-ubuntu-latest-gcc
-
-    - name: Download built binaries (MacOS)
-      uses: actions/download-artifact@v4.1.4
-      with:
-        name: artifacts-macos-latest-clang
-
-    - name: Create release entry
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "*.zip"
-        body: "${{ needs.increment-version.outputs.RELEASE_ENTRY_CONTENT }}"
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ steps.strings.outputs.archive-name }}
+        asset_name: ${{ steps.strings.outputs.archive-name }}
         tag: "v${{ needs.increment-version.outputs.NEW_TAG_NAME }}"
