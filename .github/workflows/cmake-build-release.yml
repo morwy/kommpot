@@ -121,7 +121,7 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "archive-name=kommpot-${{ needs.increment-version.outputs.NEW_TAG_NAME }}-${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}-${{ matrix.library_type }}-x86-64.zip" >> "$GITHUB_OUTPUT"
+        echo "archive-name=kommpot-${{ needs.increment-version.outputs.NEW_TAG_NAME }}-${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}-${{ matrix.library_type }}-${{ matrix.c_compiler }}-x86-64.zip" >> "$GITHUB_OUTPUT"
         echo "build-output-dir=${{ github.workspace }}${{ env.path-separator }}build" >> "$GITHUB_OUTPUT"
         echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}_x86_64${{ env.path-separator }}${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
 
