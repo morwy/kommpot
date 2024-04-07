@@ -14,12 +14,17 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Read branch name
+      id: read_branch
+      shell: bash
+      run: echo "branch_name=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+      
     - name: Increase package version
       id: version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_TO_COMMIT: ProjectVersion.cmake
-        DESTINATION_BRANCH: main
+        DESTINATION_BRANCH: ${{ steps.read_branch.outputs.branch_name }}
         MESSAGE: "chore(release): prepare for upcoming release (ProjectVersion.cmake)"
       run: |
         python -m IncrementProjectVersion INCREMENT_VERSION
@@ -57,7 +62,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_TO_COMMIT: CHANGELOG.md
-        DESTINATION_BRANCH: main
+        DESTINATION_BRANCH: ${{ steps.read_branch.outputs.branch_name }}
         MESSAGE: "chore(release): prepare for upcoming release (CHANGELOG.md)"
       run: |
         export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
