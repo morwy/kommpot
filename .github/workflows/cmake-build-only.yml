@@ -75,7 +75,7 @@ jobs:
 
       # This action has bug with wildcards under Windows OS, thus ignore it.
     - name: Check binaries (non-Windows)
-      uses: andstor/file-existence-action@v2
+      uses: andstor/file-existence-action@v3
       if: matrix.os != 'windows-latest'
       with:
         files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}*"
