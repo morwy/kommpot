@@ -226,6 +226,11 @@ auto communication_libftdi::get_error_string(const uint32_t &native_error_code) 
     return "";
 }
 
+auto communication_libftdi::original_handle() const -> void *
+{
+    return m_ftdi_context;
+}
+
 std::string communication_libftdi::get_port_path(libusb_device *device)
 {
     constexpr uint32_t max_usb_tiers = 7;

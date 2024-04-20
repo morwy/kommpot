@@ -208,6 +208,12 @@ public:
     [[nodiscard]] virtual auto get_error_string(
         const uint32_t &native_error_code) const -> std::string = 0;
 
+    /**
+     * @brief provides access to original library's device handle.
+     * @return pointer to device handle, or nullptr.
+     */
+    virtual auto original_handle() const -> void * = 0;
+
 protected:
     bool m_is_custom_configuration_set = false;
     communication_configuration m_configuration;

@@ -25,6 +25,8 @@ public:
     [[nodiscard]] auto get_error_string(const uint32_t &native_error_code) const
         -> std::string override;
 
+    virtual auto original_handle() const -> void * override;
+
 private:
     static libusb_context *m_libusb_context;
     libusb_device_handle *m_device_handle = nullptr;
