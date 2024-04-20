@@ -25,8 +25,8 @@ public:
     auto read(const int &endpoint_address, void *data, size_t size_bytes) -> bool override;
     auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool override;
 
-    [[nodiscard]] auto get_error_string(
-        const uint32_t &native_error_code) const -> std::string override;
+    [[nodiscard]] auto get_error_string(const uint32_t &native_error_code) const
+        -> std::string override;
 
     virtual auto original_handle() const -> void * override;
 
