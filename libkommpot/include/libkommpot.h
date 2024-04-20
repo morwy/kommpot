@@ -57,13 +57,23 @@ private:
 auto EXPORTED get_version() noexcept -> version;
 
 /**
- * @brief states types of endpoint
+ * @brief states types of endpoint.
  */
 enum class endpoint_type
 {
     UNKNOWN = 0,
     INPUT = 1,
     OUTPUT = 2
+};
+
+/**
+ * @brief states types of communications.
+ */
+enum class communication_type
+{
+    UNKNOWN = 0,
+    LIBUSB = 1,
+    LIBFTDI = 2
 };
 
 /**
@@ -205,8 +215,7 @@ public:
      */
     virtual auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool = 0;
 
-    [[nodiscard]] virtual auto get_error_string(
-        const uint32_t &native_error_code) const -> std::string = 0;
+    virtual auto get_error_string(const uint32_t &native_error_code) const -> std::string = 0;
 
     /**
      * @brief provides access to original library's device handle.
@@ -214,9 +223,16 @@ public:
      */
     virtual auto original_handle() const -> void * = 0;
 
+    /**
+     * @brief states currently used communication type.
+     * @return enum class value.
+     */
+    auto type() const -> communication_type;
+
 protected:
     bool m_is_custom_configuration_set = false;
     communication_configuration m_configuration;
+    communication_type m_type = communication_type::UNKNOWN;
     communication_information m_information;
 };
 

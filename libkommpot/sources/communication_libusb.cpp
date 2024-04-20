@@ -9,7 +9,9 @@ libusb_context *communication_libusb::m_libusb_context = nullptr;
 
 communication_libusb::communication_libusb(const kommpot::communication_information &information)
     : kommpot::device_communication(information)
-{}
+{
+    m_type = kommpot::communication_type::LIBUSB;
+}
 
 auto communication_libusb::get_available_devices(
     const kommpot::device_identification &identification)

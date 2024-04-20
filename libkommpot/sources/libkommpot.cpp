@@ -55,6 +55,11 @@ kommpot::device_communication::device_communication(const communication_informat
     m_information = information;
 }
 
+auto kommpot::device_communication::type() const -> kommpot::communication_type
+{
+    return m_type;
+}
+
 std::vector<std::unique_ptr<kommpot::device_communication>> kommpot::get_device_list(
     const device_identification &identification)
 {

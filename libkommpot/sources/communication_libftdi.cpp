@@ -11,6 +11,7 @@ ftdi_context *communication_libftdi::m_ftdi_context = nullptr;
 communication_libftdi::communication_libftdi(const kommpot::communication_information &information)
     : kommpot::device_communication(information)
 {
+    m_type = kommpot::communication_type::LIBFTDI;
 }
 
 communication_libftdi::~communication_libftdi()
