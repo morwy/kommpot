@@ -215,6 +215,7 @@ public:
      */
     virtual auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool = 0;
 
+    virtual auto get_error_string(const uint32_t &native_error_code) const -> std::string = 0;
 
     /**
      * @brief provides access to original library's device handle.
