@@ -241,6 +241,11 @@ auto communication_libusb::get_error_string(const uint32_t &native_error_code) c
     return libusb_error_name(static_cast<int>(native_error_code));
 }
 
+auto communication_libusb::original_handle() const -> void *
+{
+    return m_device_handle;
+}
+
 std::string communication_libusb::read_descriptor(
     libusb_device_handle *device_handle, uint8_t descriptor_index)
 {

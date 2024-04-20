@@ -10,6 +10,8 @@
 class communication_libftdi : public kommpot::device_communication
 {
 public:
+    static constexpr uint32_t VENDOR_ID = 0x0403;
+
     communication_libftdi(const kommpot::communication_information &information);
     ~communication_libftdi();
 
@@ -26,7 +28,7 @@ public:
     [[nodiscard]] auto get_error_string(
         const uint32_t &native_error_code) const -> std::string override;
 
-    static constexpr uint32_t VENDOR_ID = 0x0403;
+    virtual auto original_handle() const -> void * override;
 
 private:
     static ftdi_context *m_ftdi_context;
