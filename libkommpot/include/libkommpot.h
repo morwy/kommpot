@@ -215,6 +215,11 @@ public:
      */
     virtual auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool = 0;
 
+    /**
+     * @brief get human-readable error text from native error code.
+     * @param native_error_code as uint32_t.
+     * @return error text as std::string.
+     */
     virtual auto get_error_string(const uint32_t &native_error_code) const -> std::string = 0;
 
     /**
