@@ -223,10 +223,10 @@ public:
     virtual auto get_error_string(const uint32_t &native_error_code) const -> std::string = 0;
 
     /**
-     * @brief provides access to original library's device handle.
+     * @brief provides access to native library's device handle.
      * @return pointer to device handle, or nullptr.
      */
-    virtual auto original_handle() const -> void * = 0;
+    virtual auto native_handle() const -> void * = 0;
 
     /**
      * @brief states currently used communication type.

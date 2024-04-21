@@ -27,7 +27,7 @@ public:
 
     auto get_error_string(const uint32_t &native_error_code) const -> std::string override;
 
-    virtual auto original_handle() const -> void * override;
+    virtual auto native_handle() const -> void * override;
 
 private:
     static ftdi_context *m_ftdi_context;

@@ -227,7 +227,7 @@ auto communication_libftdi::get_error_string(const uint32_t &native_error_code) 
     return "";
 }
 
-auto communication_libftdi::original_handle() const -> void *
+auto communication_libftdi::native_handle() const -> void *
 {
     return m_ftdi_context;
 }
