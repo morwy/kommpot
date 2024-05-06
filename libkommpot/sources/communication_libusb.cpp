@@ -206,6 +206,47 @@ void communication_libusb::close()
     m_device_handle = nullptr;
 }
 
+auto communication_libusb::endpoints() -> std::vector<kommpot::endpoint_information>
+{
+    std::vector<kommpot::endpoint_information> endpoints;
+
+    libusb_config_descriptor *config_descriptor = nullptr;
+    int result_code =
+        libusb_get_active_config_descriptor(libusb_get_device(m_device_handle), &config_descriptor);
+    if (result_code < 0)
+    {
+        spdlog::error("libusb_get_active_config_descriptor() failed with error {} [{}]",
+            libusb_error_name(result_code), result_code);
+        return {};
+    }
+
+    for (uint8_t interface_index = 0; interface_index < config_descriptor->bNumInterfaces;
+         interface_index++)
+    {
+        const libusb_interface interface = config_descriptor->interface[interface_index];
+        for (int altsetting_index = 0; altsetting_index < interface.num_altsetting;
+             altsetting_index++)
+        {
+            const libusb_interface_descriptor altsetting = interface.altsetting[altsetting_index];
+            for (int endpoint_index = 0; endpoint_index < altsetting.bNumEndpoints;
+                 endpoint_index++)
+            {
+                const libusb_endpoint_descriptor libusb_endpoint =
+                    altsetting.endpoint[endpoint_index];
+
+                kommpot::endpoint_information information;
+                information.address = (libusb_endpoint.bEndpointAddress & 0xF);
+                information.type = (libusb_endpoint.bEndpointAddress & LIBUSB_ENDPOINT_IN)
+                                       ? kommpot::endpoint_type::INPUT
+                                       : kommpot::endpoint_type::OUTPUT;
+                endpoints.push_back(information);
+            }
+        }
+    }
+
+    return endpoints;
+}
+
 auto communication_libusb::read(const int &endpoint_address, void *data, size_t size_bytes) -> bool
 {
     int size_bytes_written = 0;
