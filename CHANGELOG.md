@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2024-05-06
+
+### 🚀 Features
+
+- Added function providing access to original library's device handle. (#9)
+- Added function to state currently used communication type. (#10)
+
+### 🐛 Bug Fixes
+
+- Removed folder structure from *nix release archives.
+
+### 📚 Documentation
+
+- Added javadoc description for get_error_string().
+
+### ⚙️ Miscellaneous Tasks
+
+- Renamed original_handle() to native_handle().
+
+### Build
+
+- *(deps)* Bump andstor/file-existence-action from 2 to 3 (#8)
+
 ## [0.0.2] - 2024-04-07
 
 ### 🚀 Features
