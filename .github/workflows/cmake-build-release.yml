@@ -166,7 +166,7 @@ jobs:
 
     - name: Archive built binaries (non-Windows)
       if: matrix.os != 'windows-latest'
-      run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}* 
+      run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ github.workspace }}${{ env.path-separator }}${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}*
 
     - name: Upload built binaries
       uses: svenstaro/upload-release-action@v2
