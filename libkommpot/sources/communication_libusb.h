@@ -19,6 +19,8 @@ public:
     auto is_open() -> bool override;
     void close() override;
 
+    auto endpoints() -> std::vector<kommpot::endpoint_information> override;
+
     auto read(const int &endpoint_address, void *data, size_t size_bytes) -> bool override;
     auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool override;
 

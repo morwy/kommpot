@@ -67,6 +67,15 @@ enum class endpoint_type
 };
 
 /**
+ * @brief describes parameters of endpoint.
+ */
+struct endpoint_information
+{
+    endpoint_type type = endpoint_type::UNKNOWN;
+    int address = 0;
+};
+
+/**
  * @brief states types of communications.
  */
 enum class communication_type
@@ -196,6 +205,12 @@ public:
      * @brief closes opened device, has no effect on not opened devices.
      */
     virtual void close() = 0;
+
+    /**
+     * @brief returns list of endpoints available on the device.
+     * @return information as endpoint_information structure.
+     */
+    virtual auto endpoints() -> std::vector<endpoint_information> = 0;
 
     /**
      * @brief reads data from specified endpoint.
