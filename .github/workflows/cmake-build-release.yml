@@ -178,6 +178,9 @@ jobs:
     steps:
     - name: Downloading all built binaries
       uses: actions/download-artifact@v4
+      with:
+        path: ${{ github.workspace }}
+        merge-multiple: true
 
     - name: List all built binaries
       run: ls -R
