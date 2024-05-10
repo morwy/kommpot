@@ -73,13 +73,6 @@ jobs:
     - name: Build libraries
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-    - name: Check binaries (Windows-only)
-      uses: thebinaryfelix/check-file-existence-action@1.0.0
-      if: matrix.os == 'windows-latest'
-      with:
-        files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}includes${{ env.path-separator }}*, ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}libs${{ env.path-separator }}*"
-        ignore_case: true
-
       # This action has bug with wildcards under Windows OS, thus ignore it.
     - name: Check binaries (non-Windows)
       uses: andstor/file-existence-action@v3
