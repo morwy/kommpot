@@ -24,8 +24,10 @@ public:
 
     auto endpoints() -> std::vector<kommpot::endpoint_information> override;
 
-    auto read(const int &endpoint_address, void *data, size_t size_bytes) -> bool override;
-    auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool override;
+    auto read(const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes)
+        -> bool override;
+    auto write(const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes)
+        -> bool override;
 
     auto get_error_string(const uint32_t &native_error_code) const -> std::string override;
 

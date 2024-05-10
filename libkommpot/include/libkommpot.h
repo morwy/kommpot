@@ -219,7 +219,8 @@ public:
      * @param size_bytes states max buffer size.
      * @return true if read was successful, false if any error happened.
      */
-    virtual auto read(const int &endpoint_address, void *data, size_t size_bytes) -> bool = 0;
+    virtual auto read(const endpoint_information &endpoint, void *data, size_t size_bytes)
+        -> bool = 0;
 
     /**
      * @brief writes data to specified endpoint.
@@ -228,7 +229,8 @@ public:
      * @param size_bytes states max buffer size.
      * @return true if write was successful, false if any error happened.
      */
-    virtual auto write(const int &endpoint_address, void *data, size_t size_bytes) -> bool = 0;
+    virtual auto write(const endpoint_information &endpoint, void *data, size_t size_bytes)
+        -> bool = 0;
 
     /**
      * @brief get human-readable error text from native error code.

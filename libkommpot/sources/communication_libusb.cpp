@@ -247,11 +247,12 @@ auto communication_libusb::endpoints() -> std::vector<kommpot::endpoint_informat
     return endpoints;
 }
 
-auto communication_libusb::read(const int &endpoint_address, void *data, size_t size_bytes) -> bool
+auto communication_libusb::read(
+    const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes) -> bool
 {
     int size_bytes_written = 0;
     auto *data_ptr = reinterpret_cast<unsigned char *>(data);
-    int result_code = libusb_bulk_transfer(m_device_handle, endpoint_address, data_ptr, size_bytes,
+    int result_code = libusb_bulk_transfer(m_device_handle, endpoint.address, data_ptr, size_bytes,
         &size_bytes_written, M_TRANSFER_TIMEOUT_MSEC);
     if (result_code < 0)
     {
@@ -263,11 +264,12 @@ auto communication_libusb::read(const int &endpoint_address, void *data, size_t 
     return true;
 }
 
-auto communication_libusb::write(const int &endpoint_address, void *data, size_t size_bytes) -> bool
+auto communication_libusb::write(
+    const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes) -> bool
 {
     int size_bytes_written = 0;
     auto *data_ptr = reinterpret_cast<unsigned char *>(data);
-    int result_code = libusb_bulk_transfer(m_device_handle, endpoint_address, data_ptr, size_bytes,
+    int result_code = libusb_bulk_transfer(m_device_handle, endpoint.address, data_ptr, size_bytes,
         &size_bytes_written, M_TRANSFER_TIMEOUT_MSEC);
     if (result_code < 0)
     {
@@ -315,7 +317,7 @@ auto communication_libusb::get_port_path(libusb_device_handle *device_handle) ->
 {
     constexpr uint32_t max_usb_tiers = 7;
     std::vector<uint8_t> port_numbers(max_usb_tiers, 0);
-    int result_code = libusb_get_port_numbers(
+    const int result_code = libusb_get_port_numbers(
         libusb_get_device(device_handle), port_numbers.data(), port_numbers.size());
     if (result_code <= 0)
     {
