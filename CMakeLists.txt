@@ -26,7 +26,8 @@ include(ConvenienceDefinitions.cmake)
 # Set output folder for binaries.
 #
 set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR})
-set(BINARY_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin/${PLATFORM_OS}_${PLATFORM_TYPE}/${CMAKE_BUILD_TYPE})
+set(INCLUDE_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin/${PLATFORM_OS}_${PLATFORM_TYPE}/${CMAKE_BUILD_TYPE}/includes)
+set(BINARY_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin/${PLATFORM_OS}_${PLATFORM_TYPE}/${CMAKE_BUILD_TYPE}/libs)
 
 get_property(IS_MULTI_CONFIGURATION_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (IS_MULTI_CONFIGURATION_GENERATOR)
@@ -42,6 +43,9 @@ else()
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_OUTPUT_PATH})
 endif()
+
+message("Creating ${INCLUDE_OUTPUT_PATH} build directory.")
+file(MAKE_DIRECTORY ${INCLUDE_OUTPUT_PATH})
 
 message("Creating ${BINARY_OUTPUT_PATH} build directory.")
 file(MAKE_DIRECTORY ${BINARY_OUTPUT_PATH})
@@ -142,6 +146,7 @@ if(IS_COMPILING_LIBUSB)
     endif()
 
     message("  - libusb")
+    configure_file(${PROJECT_ROOT_PATH}/third-party/libusb-cmake/libusb/libusb/libusb.h ${INCLUDE_OUTPUT_PATH} COPYONLY)
     add_subdirectory(third-party/libusb-cmake)
 endif()
 
@@ -173,6 +178,7 @@ if(IS_COMPILING_LIBFTDI)
     endif()
 
     message("  - libftdi")
+    configure_file(${PROJECT_ROOT_PATH}/third-party/libftdi/src/ftdi.h ${INCLUDE_OUTPUT_PATH} COPYONLY)
     add_subdirectory(third-party/libftdi)
 endif()
 
