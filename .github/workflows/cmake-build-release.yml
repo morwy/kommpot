@@ -4,11 +4,12 @@ on: workflow_dispatch
 
 jobs:
   increment-version:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     permissions:
         contents: write
     outputs:
       NEW_TAG_NAME: ${{ steps.version.outputs.NEW_TAG_NAME }}
+      RELEASE_ENTRY_TEXT: ${{ steps.git-cliff-release-entry.outputs.content }}
 
     steps:
     - uses: actions/checkout@v4
@@ -74,12 +75,6 @@ jobs:
           --field encoding="base64" \
           --field branch="$DESTINATION_BRANCH" \
           --field sha="$SHA"
-
-    - name: Create release entry
-      uses: ncipollo/release-action@v1
-      with:
-        body: "${{ steps.git-cliff-release-entry.outputs.content }}"
-        tag: "v${{ steps.version.outputs.NEW_TAG_NAME }}"
 
   build-binaries:
     runs-on: ${{ matrix.os }}
@@ -156,7 +151,7 @@ jobs:
       uses: andstor/file-existence-action@v3
       if: matrix.os != 'windows-latest'
       with:
-        files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}*"
+        files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}includes${{ env.path-separator }}*, ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}libs${{ env.path-separator }}*"
         ignore_case: true
         fail: true
 
@@ -169,9 +164,30 @@ jobs:
       run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ github.workspace }}${{ env.path-separator }}${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}*
 
     - name: Upload built binaries
-      uses: svenstaro/upload-release-action@v2
+      uses: actions/upload-artifact@v4
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ steps.strings.outputs.archive-name }}
-        asset_name: ${{ steps.strings.outputs.archive-name }}
+        name: ${{ steps.strings.outputs.archive-name }}
+        path: ${{ steps.strings.outputs.archive-name }}
+
+  create-release-entry:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+    needs: [increment-version, build-binaries]
+
+    steps:
+    - name: Downloading all built binaries
+      uses: actions/download-artifact@v4
+      with:
+        path: ${{ github.workspace }}
+        merge-multiple: true
+
+    - name: List all built binaries
+      run: ls -R
+
+    - name: Create release entry
+      uses: ncipollo/release-action@v1
+      with:
+        body: "${{ needs.increment-version.outputs.RELEASE_ENTRY_TEXT }}"
         tag: "v${{ needs.increment-version.outputs.NEW_TAG_NAME }}"
+        artifacts: "*.zip"
