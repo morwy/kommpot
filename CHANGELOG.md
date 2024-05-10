@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2024-05-10
+
+### 🚀 Features
+
+- Added function providing access to original library's device handle. (#9)
+- Added function to state currently used communication type. (#10)
+- Added endpoints() function to API. (#12)
+- Started using endpoint_information in read() & write() API functions. (#13)
+
+### 🐛 Bug Fixes
+
+- Removed folder structure from *nix release archives. (#11)
+
+### 📚 Documentation
+
+- Added javadoc description for get_error_string().
+
+### ⚙️ Miscellaneous Tasks
+
+- Renamed original_handle() to native_handle().
+- Fixed output path creation for multi-configuration generators (MSVC, Xcode).
+- Added copying built libraries headers into includes folder.
+- Checking binaries at updated SDK paths.
+- Added built file check for Windows.
+- Corrected CI/CD release script.
+
+### Build
+
+- *(deps)* Bump andstor/file-existence-action from 2 to 3 (#8)
+
 ## [0.0.2] - 2024-04-07
 
 ### 🚀 Features
