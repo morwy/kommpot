@@ -171,6 +171,8 @@ jobs:
 
   create-release-entry:
     runs-on: ubuntu-latest
+    permissions:
+        contents: write
     needs: [increment-version, build-binaries]
 
     steps:
@@ -185,3 +187,4 @@ jobs:
       with:
         body: "${{ needs.increment-version.outputs.RELEASE_ENTRY_TEXT }}"
         tag: "v${{ needs.increment-version.outputs.NEW_TAG_NAME }}"
+        artifacts: "*.zip"
