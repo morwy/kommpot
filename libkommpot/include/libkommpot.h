@@ -86,6 +86,12 @@ enum class communication_type
 };
 
 /**
+ * @brief gets communication_type as string.
+ * @return communication_type as string.
+ */
+auto EXPORTED communication_type_to_string(const communication_type &type) noexcept -> std::string;
+
+/**
  * @brief states specific configuration required for opening the device communication.
  */
 struct communication_configuration

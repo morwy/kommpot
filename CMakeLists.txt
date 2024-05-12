@@ -209,6 +209,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../third-party/spdlog/include/)
 # Add projects.
 #
 add_subdirectory(libkommpot)
+add_subdirectory(libkommpot-test-app)
 
 #
 # Add tests.

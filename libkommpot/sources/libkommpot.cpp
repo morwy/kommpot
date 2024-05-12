@@ -74,3 +74,21 @@ std::vector<std::unique_ptr<kommpot::device_communication>> kommpot::get_device_
 
     return device_list;
 }
+
+std::string kommpot::communication_type_to_string(const communication_type &type) noexcept
+{
+    switch (type)
+    {
+    case communication_type::UNKNOWN: {
+        return "Unknown";
+    }
+    case communication_type::LIBUSB: {
+        return "libusb";
+    }
+    case communication_type::LIBFTDI: {
+        return "libftdi";
+    }
+    default:
+        return "";
+    }
+}
