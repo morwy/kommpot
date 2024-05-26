@@ -2,7 +2,12 @@
 
 #include "communication_libusb.h"
 
+#include <cstdint>
+#include <iterator>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 kommpot::version::version(const uint8_t major, const uint8_t minor, const uint8_t micro,
     const uint8_t nano, std::string git_hash)
@@ -50,10 +55,9 @@ auto kommpot::get_version() noexcept -> kommpot::version
         PROJECT_VERSION_NANO, PROJECT_VERSION_SHA};
 }
 
-kommpot::device_communication::device_communication(const communication_information &information)
-{
-    m_information = information;
-}
+kommpot::device_communication::device_communication(communication_information information)
+    : m_information(std::move(information))
+{}
 
 auto kommpot::device_communication::type() const -> kommpot::communication_type
 {

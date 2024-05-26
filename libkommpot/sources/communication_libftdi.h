@@ -13,7 +13,7 @@ public:
     static constexpr uint32_t VENDOR_ID = 0x0403;
 
     communication_libftdi(const kommpot::communication_information &information);
-    ~communication_libftdi();
+    ~communication_libftdi() override;
 
     static auto get_available_devices(const kommpot::device_identification &identification)
         -> std::vector<std::unique_ptr<kommpot::device_communication>>;

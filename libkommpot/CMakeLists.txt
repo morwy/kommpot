@@ -28,11 +28,14 @@ endif()
 
 add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${PROJECT_FOLDER_FILES})
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE LIBRARY_EXPORT)
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(${PROJECT_NAME} PRIVATE /MD)
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN_EXPORT)
+
+    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+        target_compile_options(${PROJECT_NAME} PRIVATE /MDd)
+    else()
+        target_compile_options(${PROJECT_NAME} PRIVATE /MD)
+    endif()
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${INTERNAL_LIBRARIES})

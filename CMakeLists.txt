@@ -72,6 +72,11 @@ endif()
 #
 if(IS_COMPILING_STATIC)
     set(COMPILATION_TYPE "static")
+
+    #
+    # Injecting IS_COMPILING_STATIC into build definitions to disable __delcspec() exports under Windows.
+    #
+    add_definitions(-DIS_COMPILING_STATIC)
 else()
     set(COMPILATION_TYPE "shared")
 endif()
@@ -81,7 +86,6 @@ if(PLATFORM_OS_MACOS)
         set(MACOSX_RPATH false)
         set(CMAKE_MACOSX_RPATH false)
         set(CMAKE_SKIP_RPATH false)
-        #set(CMAKE_SKIP_BUILD_RPATH true)
     endif()
 endif()
 
@@ -124,7 +128,7 @@ if(IS_COMPILING_LIBUSB)
     elseif(PLATFORM_OS_WINDOWS)
         set(LIBUSB_PROJECT_NAME libusb-1.0)
     endif()
-    
+
     set(INTERNAL_DEPENDENCIES ${INTERNAL_DEPENDENCIES} ${LIBUSB_PROJECT_NAME})
 
     if(IS_COMPILING_SHARED)

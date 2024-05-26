@@ -1,8 +1,9 @@
+#include <cstdio>
 #include <cstdlib>
 
 #include "libkommpot.h"
 
-auto main(int argc, char *argv[]) -> int
+auto main(int /*argc*/, char * /*argv*/[]) -> int
 {
     printf("libkommpot version: %s.\n\n", kommpot::get_version().to_string().c_str());
 
