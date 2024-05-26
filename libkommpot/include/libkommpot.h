@@ -5,7 +5,7 @@
 
 #include "export_definitions.h"
 
-#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -86,6 +86,12 @@ enum class communication_type
 };
 
 /**
+ * @brief gets communication_type as string.
+ * @return communication_type as string.
+ */
+auto EXPORTED communication_type_to_string(const communication_type &type) noexcept -> std::string;
+
+/**
  * @brief states specific configuration required for opening the device communication.
  */
 struct communication_configuration
@@ -143,7 +149,7 @@ struct device_identification
 class EXPORTED device_communication
 {
 public:
-    device_communication(const communication_information &information);
+    explicit device_communication(communication_information information);
     virtual ~device_communication() = default;
 
     /**
@@ -237,19 +243,20 @@ public:
      * @param native_error_code as uint32_t.
      * @return error text as std::string.
      */
-    virtual auto get_error_string(const uint32_t &native_error_code) const -> std::string = 0;
+    [[nodiscard]] virtual auto get_error_string(const uint32_t &native_error_code) const
+        -> std::string = 0;
 
     /**
      * @brief provides access to native library's device handle.
      * @return pointer to device handle, or nullptr.
      */
-    virtual auto native_handle() const -> void * = 0;
+    [[nodiscard]] virtual auto native_handle() const -> void * = 0;
 
     /**
      * @brief states currently used communication type.
      * @return enum class value.
      */
-    auto type() const -> communication_type;
+    [[nodiscard]] auto type() const -> communication_type;
 
 protected:
     bool m_is_custom_configuration_set = false;
