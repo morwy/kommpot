@@ -7,10 +7,16 @@
 
 #include "third-party/libusb-cmake/libusb/libusb/libusb.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 class communication_libusb : public kommpot::device_communication
 {
 public:
-    communication_libusb(const kommpot::communication_information &information);
+    explicit communication_libusb(const kommpot::communication_information &information);
 
     static auto get_available_devices(const kommpot::device_identification &identification)
         -> std::vector<std::unique_ptr<kommpot::device_communication>>;
@@ -26,9 +32,10 @@ public:
     auto write(const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes)
         -> bool override;
 
-    auto get_error_string(const uint32_t &native_error_code) const -> std::string override;
+    [[nodiscard]] auto get_error_string(const uint32_t &native_error_code) const
+        -> std::string override;
 
-    virtual auto native_handle() const -> void * override;
+    [[nodiscard]] auto native_handle() const -> void * override;
 
 private:
     static libusb_context *m_libusb_context;

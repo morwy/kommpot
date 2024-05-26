@@ -1,9 +1,17 @@
 #include "communication_libusb.h"
 
 #include "communication_libftdi.h"
+#include "libkommpot.h"
+#include "third-party/libusb-cmake/libusb/libusb/libusb.h"
 #include "third-party/spdlog/include/spdlog/spdlog.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 libusb_context *communication_libusb::m_libusb_context = nullptr;
 
@@ -28,7 +36,7 @@ auto communication_libusb::get_available_devices(
     }
 
     libusb_device **device_list = nullptr;
-    ssize_t device_list_count = libusb_get_device_list(nullptr, &device_list);
+    const ssize_t device_list_count = libusb_get_device_list(nullptr, &device_list);
 
     for (size_t device_index = 0; device_index < device_list_count; ++device_index)
     {
@@ -146,7 +154,7 @@ auto communication_libusb::open() -> bool
         }
     }
 
-    ssize_t device_list_count = libusb_get_device_list(m_libusb_context, &device_list);
+    const ssize_t device_list_count = libusb_get_device_list(m_libusb_context, &device_list);
 
     for (size_t device_index = 0; device_index < device_list_count; ++device_index)
     {
@@ -236,7 +244,7 @@ auto communication_libusb::endpoints() -> std::vector<kommpot::endpoint_informat
 
                 kommpot::endpoint_information information;
                 information.address = (libusb_endpoint.bEndpointAddress & 0xF);
-                information.type = (libusb_endpoint.bEndpointAddress & LIBUSB_ENDPOINT_IN)
+                information.type = (libusb_endpoint.bEndpointAddress & LIBUSB_ENDPOINT_IN) != 0
                                        ? kommpot::endpoint_type::INPUT
                                        : kommpot::endpoint_type::OUTPUT;
                 endpoints.push_back(information);
@@ -291,8 +299,8 @@ auto communication_libusb::native_handle() const -> void *
     return m_device_handle;
 }
 
-std::string communication_libusb::read_descriptor(
-    libusb_device_handle *device_handle, uint8_t descriptor_index)
+auto communication_libusb::read_descriptor(
+    libusb_device_handle *device_handle, uint8_t descriptor_index) -> std::string
 {
     std::string descriptor_text = "";
     descriptor_text.resize(M_MAX_USB_DESCRIPTOR_LENGTH_BYTES);
@@ -323,7 +331,7 @@ auto communication_libusb::get_port_path(libusb_device_handle *device_handle) ->
     {
         spdlog::error("libusb_get_port_numbers() failed with error {} [{}]",
             libusb_error_name(result_code), result_code);
-        return std::string();
+        return {};
     }
 
     port_numbers.resize(result_code);

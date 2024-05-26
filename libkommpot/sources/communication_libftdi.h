@@ -7,12 +7,18 @@
 
 #include "third-party/libftdi/src/ftdi.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 class communication_libftdi : public kommpot::device_communication
 {
 public:
     static constexpr uint32_t VENDOR_ID = 0x0403;
 
-    communication_libftdi(const kommpot::communication_information &information);
+    explicit communication_libftdi(const kommpot::communication_information &information);
     ~communication_libftdi() override;
 
     static auto get_available_devices(const kommpot::device_identification &identification)
@@ -29,9 +35,10 @@ public:
     auto write(const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes)
         -> bool override;
 
-    auto get_error_string(const uint32_t &native_error_code) const -> std::string override;
+    [[nodiscard]] auto get_error_string(const uint32_t &native_error_code) const
+        -> std::string override;
 
-    virtual auto native_handle() const -> void * override;
+    [[nodiscard]] auto native_handle() const -> void * override;
 
 private:
     static ftdi_context *m_ftdi_context;
