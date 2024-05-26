@@ -1,10 +1,18 @@
 #include "communication_libftdi.h"
 
-#include "third-party/spdlog/include/spdlog/spdlog.h"
+#include "libkommpot.h"
+#include "third-party/libftdi/src/ftdi.h"
 #include "third-party/libusb-cmake/libusb/libusb/libusb.h"
+#include "third-party/spdlog/include/spdlog/spdlog.h"
 
-#include <iomanip>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 ftdi_context *communication_libftdi::m_ftdi_context = nullptr;
 
@@ -224,7 +232,7 @@ auto communication_libftdi::endpoints() -> std::vector<kommpot::endpoint_informa
 
                 kommpot::endpoint_information information;
                 information.address = (libusb_endpoint.bEndpointAddress & 0xF);
-                information.type = (libusb_endpoint.bEndpointAddress & LIBUSB_ENDPOINT_IN)
+                information.type = (libusb_endpoint.bEndpointAddress & LIBUSB_ENDPOINT_IN) != 0
                                        ? kommpot::endpoint_type::INPUT
                                        : kommpot::endpoint_type::OUTPUT;
                 endpoints.push_back(information);
@@ -274,7 +282,7 @@ auto communication_libftdi::native_handle() const -> void *
     return m_ftdi_context;
 }
 
-std::string communication_libftdi::get_port_path(libusb_device *device)
+auto communication_libftdi::get_port_path(libusb_device *device) -> std::string
 {
     constexpr uint32_t max_usb_tiers = 7;
     std::vector<uint8_t> port_numbers(max_usb_tiers, 0);
@@ -283,7 +291,7 @@ std::string communication_libftdi::get_port_path(libusb_device *device)
     {
         spdlog::error("libusb_get_port_numbers() failed with error {} [{}]",
             libusb_error_name(result_code), result_code);
-        return std::string();
+        return {};
     }
 
     port_numbers.resize(result_code);

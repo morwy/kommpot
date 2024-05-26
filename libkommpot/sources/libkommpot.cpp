@@ -64,8 +64,8 @@ auto kommpot::device_communication::type() const -> kommpot::communication_type
     return m_type;
 }
 
-std::vector<std::unique_ptr<kommpot::device_communication>> kommpot::get_device_list(
-    const device_identification &identification)
+auto kommpot::get_device_list(const device_identification &identification)
+    -> std::vector<std::unique_ptr<kommpot::device_communication>>
 {
     std::vector<std::unique_ptr<kommpot::device_communication>> device_list;
 
@@ -79,7 +79,7 @@ std::vector<std::unique_ptr<kommpot::device_communication>> kommpot::get_device_
     return device_list;
 }
 
-std::string kommpot::communication_type_to_string(const communication_type &type) noexcept
+auto kommpot::communication_type_to_string(const communication_type &type) noexcept -> std::string
 {
     switch (type)
     {
