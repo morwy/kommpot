@@ -81,3 +81,15 @@ jobs:
         files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}includes${{ env.path-separator }}*, ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}libs${{ env.path-separator }}*"
         ignore_case: true
         fail: true
+        
+  static_analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Run static analysis
+      uses: JacobDomagala/StaticAnalysis@master
+      with:
+        language: c++
+        cppcheck_args: --enable=all --project=kommpot.cppcheck

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="1">
+    <builddir>kommpot-cppcheck-build-dir</builddir>
+    <platform>native</platform>
+    <analyze-all-vs-configs>false</analyze-all-vs-configs>
+    <check-headers>true</check-headers>
+    <check-unused-templates>true</check-unused-templates>
+    <max-ctu-depth>2</max-ctu-depth>
+    <max-template-recursion>100</max-template-recursion>
+    <includedir>
+        <dir name="libkommpot/include/"/>
+        <dir name="third-party/spdlog/include/spdlog/"/>
+        <dir name="third-party/libusb-cmake/libusb/libusb/"/>
+        <dir name="third-party/libftdi/src/"/>
+    </includedir>
+    <paths>
+        <dir name="libkommpot"/>
+        <dir name="libkommpot-test-app"/>
+    </paths>
+    <suppressions>
+        <suppression>missingIncludeSystem</suppression>
+    </suppressions>
+    <safe-checks>
+        <class-public/>
+    </safe-checks>
+    <addons>
+        <addon>threadsafety</addon>
+        <addon>y2038</addon>
+        <addon>misra</addon>
+    </addons>
+</project>

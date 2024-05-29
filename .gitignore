@@ -2,6 +2,10 @@
 bin
 build
 
+# cppcheck files
+kommpot-cppcheck-build-dir
+kommpot.xml
+
 # VS folders
 .vs
 .vscode
