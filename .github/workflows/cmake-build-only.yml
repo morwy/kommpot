@@ -92,4 +92,5 @@ jobs:
       uses: JacobDomagala/StaticAnalysis@master
       with:
         language: c++
+        use_cmake: false
         cppcheck_args: --enable=all --project=kommpot.cppcheck
