@@ -52,7 +52,7 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}${{ env.path-separator }}build" >> "$GITHUB_OUTPUT"
-        echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ matrix.os }}_${{ (startsWith(matrix.os, 'macos') && 'arm64') || 'x86_64' }}${{ env.path-separator }}${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
+        echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ (startsWith(matrix.os, 'ubuntu') && 'linux') || (startsWith(matrix.os, 'windows') && 'windows') || (startsWith(matrix.os, 'macos') && 'macos') || '' }}_${{ (startsWith(matrix.os, 'macos') && 'arm64') || 'x86_64' }}${{ env.path-separator }}${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies (Ubuntu-only)
       run: |
