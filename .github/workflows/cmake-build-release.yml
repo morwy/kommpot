@@ -131,7 +131,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt install libudev-dev ninja-build
-      if: startsWith(matrix.os, 'ubuntu')
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
 
     - name: Configure CMake for static libraries
       run: |
@@ -149,18 +149,18 @@ jobs:
       # Ignore Windows OS because this actions has bug with wildcards there.
     - name: Check binaries (non-Windows)
       uses: andstor/file-existence-action@v3
-      if: ! startsWith(matrix.os, 'windows')
+      if: ${{ !startsWith(matrix.os, 'windows') }}
       with:
         files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}includes${{ env.path-separator }}*, ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}libs${{ env.path-separator }}*"
         ignore_case: true
         fail: true
 
     - name: Archive built binaries (Windows-only)
-      if: startsWith(matrix.os, 'windows')
+      if: ${{ startsWith(matrix.os, 'windows') }}
       run: Compress-Archive -Path ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -Destination ${{ steps.strings.outputs.archive-name }}
 
     - name: Archive built binaries (non-Windows)
-      if: ! startsWith(matrix.os, 'windows')
+      if: ${{ !startsWith(matrix.os, 'windows') }}
       run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ github.workspace }}${{ env.path-separator }}${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}*
 
     - name: Upload built binaries

@@ -58,7 +58,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt install libudev-dev ninja-build
-      if: startsWith(matrix.os, 'ubuntu')
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
 
     - name: Configure CMake for static libraries
       run: |
@@ -76,7 +76,7 @@ jobs:
       # This action has bug with wildcards under Windows OS, thus ignore it.
     - name: Check binaries (non-Windows)
       uses: andstor/file-existence-action@v3
-      if: ! startsWith(matrix.os, 'windows')
+      if: ${{ !startsWith(matrix.os, 'windows') }}
       with:
         files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}includes${{ env.path-separator }}*, ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}libs${{ env.path-separator }}*"
         ignore_case: true
