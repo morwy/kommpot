@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   increment-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     permissions:
         contents: write
     outputs:
@@ -82,38 +82,38 @@ jobs:
         contents: write
     needs: increment-version
     env:
-      path-separator: ${{ (startsWith(matrix.os, 'windows-latest') && '\') || '/' }}
+      path-separator: ${{ (startsWith(matrix.os, 'windows') && '\') || '/' }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-20.04, windows-2019, macos-14]
         build_type: [Release]
         c_compiler: [gcc, clang, cl]
         library_type: [static, shared]
         include:
-          - os: windows-latest
+          - os: windows-2019
             c_compiler: cl
             cpp_compiler: cl
-          - os: macos-latest
+          - os: macos-14
             c_compiler: clang
             cpp_compiler: clang++
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             c_compiler: gcc
             cpp_compiler: g++
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             c_compiler: clang
             cpp_compiler: clang++
         exclude:
-          - os: windows-latest
+          - os: windows-2019
             c_compiler: gcc
-          - os: windows-latest
+          - os: windows-2019
             c_compiler: clang
-          - os: macos-latest
+          - os: macos-14
             c_compiler: cl
-          - os: macos-latest
+          - os: macos-14
             c_compiler: gcc
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             c_compiler: cl
 
     steps:
@@ -123,15 +123,15 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "archive-name=kommpot-${{ needs.increment-version.outputs.NEW_TAG_NAME }}-${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}-${{ matrix.library_type }}-${{ matrix.c_compiler }}-${{ (startsWith(matrix.os, 'macos-latest') && 'arm64') || 'x86-64' }}.zip" >> "$GITHUB_OUTPUT"
+        echo "archive-name=kommpot-${{ needs.increment-version.outputs.NEW_TAG_NAME }}-${{ matrix.os }}-${{ matrix.library_type }}-${{ matrix.c_compiler }}-${{ (startsWith(matrix.os, 'macos-14') && 'arm64') || 'x86-64' }}.zip" >> "$GITHUB_OUTPUT"
         echo "build-output-dir=${{ github.workspace }}${{ env.path-separator }}build" >> "$GITHUB_OUTPUT"
-        echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ (startsWith(matrix.os, 'ubuntu-latest') && 'linux') || (startsWith(matrix.os, 'windows-latest') && 'windows') || (startsWith(matrix.os, 'macos-latest') && 'macos') || '' }}_${{ (startsWith(matrix.os, 'macos-latest') && 'arm64') || 'x86_64' }}${{ env.path-separator }}${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
+        echo "binary-output-dir=${{ github.workspace }}${{ env.path-separator }}bin${{ env.path-separator }}${{ matrix.os }}_${{ (startsWith(matrix.os, 'macos-14') && 'arm64') || 'x86_64' }}${{ env.path-separator }}${{ matrix.build_type }}" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies (Ubuntu-only)
       run: |
         sudo apt update
         sudo apt install libudev-dev ninja-build
-      if: matrix.os == 'ubuntu-latest'
+      if: startsWith(matrix.os, 'ubuntu')
 
     - name: Configure CMake for static libraries
       run: |
@@ -149,18 +149,18 @@ jobs:
       # Ignore Windows OS because this actions has bug with wildcards there.
     - name: Check binaries (non-Windows)
       uses: andstor/file-existence-action@v3
-      if: matrix.os != 'windows-latest'
+      if: ! startsWith(matrix.os, 'windows')
       with:
         files: "${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}includes${{ env.path-separator }}*, ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}libs${{ env.path-separator }}*"
         ignore_case: true
         fail: true
 
     - name: Archive built binaries (Windows-only)
-      if: matrix.os == 'windows-latest'
+      if: startsWith(matrix.os, 'windows')
       run: Compress-Archive -Path ${{ steps.strings.outputs.binary-output-dir }}${{ env.path-separator }}* -Destination ${{ steps.strings.outputs.archive-name }}
 
     - name: Archive built binaries (non-Windows)
-      if: matrix.os != 'windows-latest'
+      if: ! startsWith(matrix.os, 'windows')
       run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ github.workspace }}${{ env.path-separator }}${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}*
 
     - name: Upload built binaries
@@ -170,7 +170,7 @@ jobs:
         path: ${{ steps.strings.outputs.archive-name }}
 
   create-release-entry:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     permissions:
         contents: write
     needs: [increment-version, build-binaries]
