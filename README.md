@@ -9,7 +9,7 @@
 Install required dependencies:
 
 ```bash
-sudo apt install cmake ninja-build -y
+sudo apt install cmake ninja-build libudev-dev -y
 ```
 
 #### MacOS
