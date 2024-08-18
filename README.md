@@ -2,6 +2,10 @@
 
 ## Description
 
+**kommpot** is a C++ library providing a small unified interface to multiple transfer protocols.  
+Interface consists of very basic functions - **get_device_list()** / **open()** / **close()** / **read()** / **write()** and similar.
+A **native_handle()** function is available together with original SDK headers in case of certain fine-tuning required for some specific protocol.
+
 ### Prerequisites
 
 #### Linux (Ubuntu / Debian)
