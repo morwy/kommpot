@@ -42,7 +42,7 @@ jobs:
           --field sha="$SHA"
 
     - name: Generate a changelog
-      uses: orhun/git-cliff-action@v3
+      uses: orhun/git-cliff-action@v4
       id: git-cliff-release-entry
       with:
         config: cliff.toml
@@ -51,7 +51,7 @@ jobs:
         OUTPUT: CHANGES.md
 
     - name: Get changelog since last release
-      uses: orhun/git-cliff-action@v3
+      uses: orhun/git-cliff-action@v4
       id: git-cliff-file
       with:
         config: cliff.toml
