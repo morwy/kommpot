@@ -198,6 +198,12 @@ elseif(PLATFORM_OS_MACOS)
     set(KOMMPOT_LIBRARIES ${KOMMPOT_LIBRARIES} "-framework IOKit" "-framework CoreFoundation" "-framework Security" objc)
 endif()
 
+#
+# Push variables that are local to this file into parent scope.
+#
+set(KOMMPOT_DEPENDENCIES ${KOMMPOT_DEPENDENCIES} PARENT_SCOPE)
+set(KOMMPOT_LIBRARIES ${KOMMPOT_LIBRARIES} PARENT_SCOPE)
+
 message("KOMMPOT_DEPENDENCIES: ${KOMMPOT_DEPENDENCIES}")
 message("KOMMPOT_LIBRARIES: ${KOMMPOT_LIBRARIES}")
 
