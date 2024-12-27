@@ -30,8 +30,8 @@ communication_libftdi::~communication_libftdi()
     }
 }
 
-auto communication_libftdi::get_available_devices(
-    const kommpot::device_identification &identification)
+auto communication_libftdi::devices(
+    const std::vector<kommpot::device_identification> &identifications)
     -> std::vector<std::unique_ptr<kommpot::device_communication>>
 {
     std::vector<std::unique_ptr<kommpot::device_communication>> devices;
@@ -79,68 +79,73 @@ auto communication_libftdi::get_available_devices(
             continue;
         }
 
-        /**
-         * Filter device by VendorID.
-         */
-        if (identification.vendor_id != 0x0000 &&
-            identification.vendor_id != device_description.idVendor)
+        for (const auto &identification : identifications)
         {
-            spdlog::info("Found device VID{}:PID{}, requested VID{}, skipping.",
-                device_description.idVendor, device_description.idProduct,
-                identification.vendor_id);
-            continue;
+            /**
+             * Filter device by VendorID.
+             */
+            if (identification.vendor_id != 0x0000 &&
+                identification.vendor_id != device_description.idVendor)
+            {
+                spdlog::info("Found device VID{}:PID{}, requested VID{}, skipping.",
+                    device_description.idVendor, device_description.idProduct,
+                    identification.vendor_id);
+                continue;
+            }
+
+            /**
+             * Filter device by ProductID.
+             */
+            if (identification.product_id != 0x0000 &&
+                identification.product_id != device_description.idProduct)
+            {
+                spdlog::info("Found device VID{}:PID{}, requested PID{}, skipping.",
+                    device_description.idVendor, device_description.idProduct,
+                    identification.product_id);
+                continue;
+            }
+
+            kommpot::communication_information information;
+            information.name = description.data();
+            information.manufacturer = manufacturer.data();
+            information.serial_number = serial_number.data();
+            information.port = get_port_path(current_device->dev);
+            information.vendor_id = device_description.idVendor;
+            information.product_id = device_description.idProduct;
+
+            /**
+             * Filter device by serial number.
+             */
+            if (!identification.serial_number.empty() &&
+                identification.serial_number != information.serial_number)
+            {
+                spdlog::info("Found device {}, requested {}, skipping.",
+                    identification.serial_number, information.serial_number);
+                continue;
+            }
+
+            /**
+             * Filter device by port.
+             */
+            if (!identification.port.empty() && identification.port != information.port)
+            {
+                spdlog::info("Found device at port {}, requested at port {}, skipping.",
+                    identification.port, information.port);
+                continue;
+            }
+
+            std::unique_ptr<kommpot::device_communication> device =
+                std::make_unique<communication_libftdi>(information);
+            if (!device)
+            {
+                spdlog::error("std::make_unique() failed creating the device!");
+                continue;
+            }
+
+            devices.push_back(std::move(device));
+
+            break;
         }
-
-        /**
-         * Filter device by ProductID.
-         */
-        if (identification.product_id != 0x0000 &&
-            identification.product_id != device_description.idProduct)
-        {
-            spdlog::info("Found device VID{}:PID{}, requested PID{}, skipping.",
-                device_description.idVendor, device_description.idProduct,
-                identification.product_id);
-            continue;
-        }
-
-        kommpot::communication_information information;
-        information.name = description.data();
-        information.manufacturer = manufacturer.data();
-        information.serial_number = serial_number.data();
-        information.port = get_port_path(current_device->dev);
-        information.vendor_id = device_description.idVendor;
-        information.product_id = device_description.idProduct;
-
-        /**
-         * Filter device by serial number.
-         */
-        if (!identification.serial_number.empty() &&
-            identification.serial_number != information.serial_number)
-        {
-            spdlog::info("Found device {}, requested {}, skipping.", identification.serial_number,
-                information.serial_number);
-            continue;
-        }
-
-        /**
-         * Filter device by port.
-         */
-        if (!identification.port.empty() && identification.port != information.port)
-        {
-            spdlog::info("Found device at port {}, requested at port {}, skipping.",
-                identification.port, information.port);
-            continue;
-        }
-
-        std::unique_ptr<kommpot::device_communication> device =
-            std::make_unique<communication_libftdi>(information);
-        if (!device)
-        {
-            spdlog::error("std::make_unique() failed creating the device!");
-            continue;
-        }
-
-        devices.push_back(std::move(device));
 
     } while ((current_device = current_device->next) != nullptr);
 
@@ -217,15 +222,15 @@ auto communication_libftdi::endpoints() -> std::vector<kommpot::endpoint_informa
     }
 
     for (uint8_t interface_index = 0; interface_index < config_descriptor->bNumInterfaces;
-         interface_index++)
+        interface_index++)
     {
         const libusb_interface interface = config_descriptor->interface[interface_index];
         for (int altsetting_index = 0; altsetting_index < interface.num_altsetting;
-             altsetting_index++)
+            altsetting_index++)
         {
             const libusb_interface_descriptor altsetting = interface.altsetting[altsetting_index];
             for (int endpoint_index = 0; endpoint_index < altsetting.bNumEndpoints;
-                 endpoint_index++)
+                endpoint_index++)
             {
                 const libusb_endpoint_descriptor libusb_endpoint =
                     altsetting.endpoint[endpoint_index];

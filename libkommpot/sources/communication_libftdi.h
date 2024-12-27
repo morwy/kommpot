@@ -21,7 +21,7 @@ public:
     explicit communication_libftdi(const kommpot::communication_information &information);
     ~communication_libftdi() override;
 
-    static auto get_available_devices(const kommpot::device_identification &identification)
+    static auto devices(const std::vector<kommpot::device_identification> &identifications)
         -> std::vector<std::unique_ptr<kommpot::device_communication>>;
 
     auto open() -> bool override;

@@ -272,7 +272,7 @@ protected:
  * @param device_id.
  * @return std::vector of devices.
  */
-auto EXPORTED devices(const device_identification &identification = {})
+auto EXPORTED devices(const std::vector<device_identification> &identifications = {})
     -> std::vector<std::unique_ptr<kommpot::device_communication>>;
 
 } // namespace kommpot

@@ -21,8 +21,8 @@ communication_libusb::communication_libusb(const kommpot::communication_informat
     m_type = kommpot::communication_type::LIBUSB;
 }
 
-auto communication_libusb::get_available_devices(
-    const kommpot::device_identification &identification)
+auto communication_libusb::devices(
+    const std::vector<kommpot::device_identification> &identifications)
     -> std::vector<std::unique_ptr<kommpot::device_communication>>
 {
     std::vector<std::unique_ptr<kommpot::device_communication>> devices;
@@ -57,30 +57,6 @@ auto communication_libusb::get_available_devices(
             continue;
         }
 
-        /**
-         * Filter device by VendorID.
-         */
-        if (identification.vendor_id != 0x0000 &&
-            identification.vendor_id != device_description.idVendor)
-        {
-            spdlog::info("Found device VID{}:PID{}, requested VID{}, skipping.",
-                device_description.idVendor, device_description.idProduct,
-                identification.vendor_id);
-            continue;
-        }
-
-        /**
-         * Filter device by ProductID.
-         */
-        if (identification.product_id != 0x0000 &&
-            identification.product_id != device_description.idProduct)
-        {
-            spdlog::info("Found device VID{}:PID{}, requested PID{}, skipping.",
-                device_description.idVendor, device_description.idProduct,
-                identification.product_id);
-            continue;
-        }
-
         libusb_device_handle *device_handle = nullptr;
         result_code = libusb_open(device_list[device_index], &device_handle);
         if (result_code != 0)
@@ -101,36 +77,65 @@ auto communication_libusb::get_available_devices(
 
         libusb_close(device_handle);
 
-        /**
-         * Filter device by serial number.
-         */
-        if (!identification.serial_number.empty() &&
-            identification.serial_number != information.serial_number)
+        for (const auto &identification : identifications)
         {
-            spdlog::info("Found device {}, requested {}, skipping.", identification.serial_number,
-                information.serial_number);
-            continue;
-        }
+            /**
+             * Filter device by VendorID.
+             */
+            if (identification.vendor_id != 0x0000 &&
+                identification.vendor_id != device_description.idVendor)
+            {
+                spdlog::info("Found device VID{:04X}:PID{:04X}, requested VID{:04X}, skipping.",
+                    device_description.idVendor, device_description.idProduct,
+                    identification.vendor_id);
+                continue;
+            }
 
-        /**
-         * Filter device by port.
-         */
-        if (!identification.port.empty() && identification.port != information.port)
-        {
-            spdlog::info("Found device at port {}, requested at port {}, skipping.",
-                identification.port, information.port);
-            continue;
-        }
+            /**
+             * Filter device by ProductID.
+             */
+            if (identification.product_id != 0x0000 &&
+                identification.product_id != device_description.idProduct)
+            {
+                spdlog::info("Found device VID{:04X}:PID{:04X}, requested PID{:04X}, skipping.",
+                    device_description.idVendor, device_description.idProduct,
+                    identification.product_id);
+                continue;
+            }
 
-        std::unique_ptr<kommpot::device_communication> device =
-            std::make_unique<communication_libusb>(information);
-        if (!device)
-        {
-            spdlog::error("std::make_unique() failed creating the device!");
-            continue;
-        }
+            /**
+             * Filter device by serial number.
+             */
+            if (!identification.serial_number.empty() &&
+                identification.serial_number != information.serial_number)
+            {
+                spdlog::info("Found device {}, requested {}, skipping.",
+                    identification.serial_number, information.serial_number);
+                continue;
+            }
 
-        devices.push_back(std::move(device));
+            /**
+             * Filter device by port.
+             */
+            if (!identification.port.empty() && identification.port != information.port)
+            {
+                spdlog::info("Found device at port {}, requested at port {}, skipping.",
+                    identification.port, information.port);
+                continue;
+            }
+
+            std::unique_ptr<kommpot::device_communication> device =
+                std::make_unique<communication_libusb>(information);
+            if (!device)
+            {
+                spdlog::error("std::make_unique() failed creating the device!");
+                continue;
+            }
+
+            devices.push_back(std::move(device));
+
+            break;
+        }
     }
 
     libusb_free_device_list(device_list, static_cast<int>(device_list_count));
@@ -229,15 +234,15 @@ auto communication_libusb::endpoints() -> std::vector<kommpot::endpoint_informat
     }
 
     for (uint8_t interface_index = 0; interface_index < config_descriptor->bNumInterfaces;
-         interface_index++)
+        interface_index++)
     {
         const libusb_interface interface = config_descriptor->interface[interface_index];
         for (int altsetting_index = 0; altsetting_index < interface.num_altsetting;
-             altsetting_index++)
+            altsetting_index++)
         {
             const libusb_interface_descriptor altsetting = interface.altsetting[altsetting_index];
             for (int endpoint_index = 0; endpoint_index < altsetting.bNumEndpoints;
-                 endpoint_index++)
+                endpoint_index++)
             {
                 const libusb_endpoint_descriptor libusb_endpoint =
                     altsetting.endpoint[endpoint_index];
