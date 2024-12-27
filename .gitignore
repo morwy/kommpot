@@ -6,6 +6,16 @@ build
 kommpot-cppcheck-build-dir
 kommpot.xml
 
+# CMake files
+cmake_install.cmake
+*_include.cmake
+*_tests.cmake
+CTestTestfile.cmake
+*Config.cmake
+*ConfigVersion.cmake
+third-party/libftdi/src/ftdi_version_i.h
+third-party/libusb-cmake/gen_include/config.h
+
 # VS folders
 .vs
 .vscode
