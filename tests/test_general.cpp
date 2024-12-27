@@ -17,7 +17,7 @@ TEST(kommpot_general, library_version)
 TEST(kommpot_general, empty_device_list)
 {
     const std::vector<std::unique_ptr<kommpot::device_communication>> device_list =
-        kommpot::get_device_list();
+        kommpot::devices();
     ASSERT_THAT(device_list.size(), Eq(0));
 }
 
