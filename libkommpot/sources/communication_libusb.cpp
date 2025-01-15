@@ -183,9 +183,14 @@ auto communication_libusb::open() -> bool
             continue;
         }
 
-        const std::string device_serial_number =
-            read_descriptor(device_handle, device_description.iSerialNumber);
-        if (m_information.serial_number != device_serial_number)
+        if (m_information.port.empty())
+        {
+            spdlog::error("Device port is empty, cannot find the one to open.");
+            return false;
+        }
+
+        const std::string port = get_port_path(device_handle);
+        if (port != m_information.port)
         {
             libusb_close(device_handle);
             continue;
