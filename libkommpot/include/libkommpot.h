@@ -5,10 +5,12 @@
 
 #include "export_definitions.h"
 
+#include <any>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace kommpot {
@@ -57,9 +59,49 @@ private:
 auto EXPORTED get_version() noexcept -> version;
 
 /**
+ * @brief structure containing various parameters.
+ */
+struct dynamic_parameters
+{
+public:
+    template<typename T>
+    void set(const std::string &key, T value)
+    {
+        data[key] = value;
+    }
+
+    template<typename T>
+    T get(const std::string &key, const T &defaultValue = T{}) const
+    {
+        auto it = data.find(key);
+        if (it != data.end())
+        {
+            try
+            {
+                return std::any_cast<T>(it->second);
+            }
+            catch (const std::bad_any_cast &)
+            {
+                return defaultValue;
+            }
+        }
+
+        return defaultValue;
+    }
+
+    bool exists(const std::string &key) const
+    {
+        return data.count(key) > 0;
+    }
+
+private:
+    std::unordered_map<std::string, std::any> data;
+};
+
+/**
  * @brief states types of endpoint.
  */
-enum class endpoint_type
+enum class endpoint_type : uint8_t
 {
     UNKNOWN = 0,
     INPUT = 1,
@@ -71,8 +113,11 @@ enum class endpoint_type
  */
 struct endpoint_information
 {
+public:
     endpoint_type type = endpoint_type::UNKNOWN;
     int address = 0;
+
+    dynamic_parameters parameters;
 };
 
 /**

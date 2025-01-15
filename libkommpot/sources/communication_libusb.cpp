@@ -319,7 +319,7 @@ auto communication_libusb::read_descriptor(
         reinterpret_cast<unsigned char *>(descriptor_text.data()), descriptor_text.size());
     if (result_code <= 0)
     {
-        spdlog::error("libusb_get_string_descriptor_ascii() failed with error {} [{}]",
+        spdlog::warn("libusb_get_string_descriptor_ascii() failed with error {} [{}]",
             libusb_error_name(result_code), result_code);
         descriptor_text = "";
     }
