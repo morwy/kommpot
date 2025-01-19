@@ -85,7 +85,7 @@ auto communication_libusb::devices(
             if (identification.vendor_id != 0x0000 &&
                 identification.vendor_id != device_description.idVendor)
             {
-                spdlog::info("Found device VID{:04X}:PID{:04X}, requested VID{:04X}, skipping.",
+                spdlog::debug("Found device VID{:04X}:PID{:04X}, requested VID{:04X}, skipping.",
                     device_description.idVendor, device_description.idProduct,
                     identification.vendor_id);
                 continue;
@@ -97,7 +97,7 @@ auto communication_libusb::devices(
             if (identification.product_id != 0x0000 &&
                 identification.product_id != device_description.idProduct)
             {
-                spdlog::info("Found device VID{:04X}:PID{:04X}, requested PID{:04X}, skipping.",
+                spdlog::debug("Found device VID{:04X}:PID{:04X}, requested PID{:04X}, skipping.",
                     device_description.idVendor, device_description.idProduct,
                     identification.product_id);
                 continue;
@@ -109,7 +109,7 @@ auto communication_libusb::devices(
             if (!identification.serial_number.empty() &&
                 identification.serial_number != information.serial_number)
             {
-                spdlog::info("Found device {}, requested {}, skipping.",
+                spdlog::debug("Found device {}, requested {}, skipping.",
                     identification.serial_number, information.serial_number);
                 continue;
             }
@@ -119,7 +119,7 @@ auto communication_libusb::devices(
              */
             if (!identification.port.empty() && identification.port != information.port)
             {
-                spdlog::info("Found device at port {}, requested at port {}, skipping.",
+                spdlog::debug("Found device at port {}, requested at port {}, skipping.",
                     identification.port, information.port);
                 continue;
             }
