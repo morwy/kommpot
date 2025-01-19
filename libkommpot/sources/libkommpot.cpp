@@ -62,6 +62,24 @@ auto kommpot::get_version() noexcept -> kommpot::version
         PROJECT_VERSION_NANO, PROJECT_VERSION_SHA};
 }
 
+auto kommpot::communication_type_to_string(const communication_type &type) noexcept -> std::string
+{
+    switch (type)
+    {
+    case communication_type::UNKNOWN: {
+        return "Unknown";
+    }
+    case communication_type::LIBUSB: {
+        return "libusb";
+    }
+    case communication_type::LIBFTDI: {
+        return "libftdi";
+    }
+    default:
+        return "";
+    }
+}
+
 kommpot::device_communication::device_communication(communication_information information)
     : m_information(std::move(information))
 {}
@@ -84,22 +102,4 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
         std::make_move_iterator(std::end(libusb_devices)));
 
     return device_list;
-}
-
-auto kommpot::communication_type_to_string(const communication_type &type) noexcept -> std::string
-{
-    switch (type)
-    {
-    case communication_type::UNKNOWN: {
-        return "Unknown";
-    }
-    case communication_type::LIBUSB: {
-        return "libusb";
-    }
-    case communication_type::LIBFTDI: {
-        return "libftdi";
-    }
-    default:
-        return "";
-    }
 }
