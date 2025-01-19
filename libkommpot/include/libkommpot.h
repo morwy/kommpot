@@ -320,6 +320,12 @@ protected:
 auto EXPORTED devices(const std::vector<device_identification> &identifications = {})
     -> std::vector<std::unique_ptr<kommpot::device_communication>>;
 
+class spdlog_initializer
+{
+public:
+    spdlog_initializer();
+};
+static spdlog_initializer gs_initializer;
 } // namespace kommpot
 
 #endif // LIBKOMMPOT_H

@@ -5,9 +5,16 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <utility>
 #include <vector>
+
+kommpot::spdlog_initializer::spdlog_initializer()
+{
+    static auto console = spdlog::stdout_color_mt("libkommpot");
+}
 
 kommpot::version::version(const uint8_t major, const uint8_t minor, const uint8_t micro,
     const uint8_t nano, std::string git_hash)

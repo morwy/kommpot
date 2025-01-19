@@ -39,7 +39,7 @@ auto communication_libftdi::devices(
     ftdi_context *ftdi_context = ftdi_new();
     if (ftdi_context == nullptr)
     {
-        spdlog::error("ftdi_new() failed with error");
+        spdlog::get("libkommpot")->error("ftdi_new() failed with error");
         return {};
     }
 
@@ -47,8 +47,9 @@ auto communication_libftdi::devices(
     int result_code = ftdi_usb_find_all(ftdi_context, &device_list, 0, 0);
     if (result_code < 0)
     {
-        spdlog::error("ftdi_usb_find_all() failed with error {} [{}]",
-            ftdi_get_error_string(ftdi_context), result_code);
+        spdlog::get("libkommpot")
+            ->error("ftdi_usb_find_all() failed with error {} [{}]",
+                ftdi_get_error_string(ftdi_context), result_code);
         return {};
     }
 
@@ -65,8 +66,9 @@ auto communication_libftdi::devices(
             serial_number.size());
         if (result_code < 0)
         {
-            spdlog::error("ftdi_usb_get_strings() failed with error {} [{}]",
-                ftdi_get_error_string(ftdi_context), result_code);
+            spdlog::get("libkommpot")
+                ->error("ftdi_usb_get_strings() failed with error {} [{}]",
+                    ftdi_get_error_string(ftdi_context), result_code);
             continue;
         }
 
@@ -74,8 +76,9 @@ auto communication_libftdi::devices(
         result_code = libusb_get_device_descriptor(current_device->dev, &device_description);
         if (result_code != 0)
         {
-            spdlog::error("libusb_get_device_descriptor() failed with error {} [{}]",
-                libusb_error_name(result_code), result_code);
+            spdlog::get("libkommpot")
+                ->error("libusb_get_device_descriptor() failed with error {} [{}]",
+                    libusb_error_name(result_code), result_code);
             continue;
         }
 
@@ -87,9 +90,10 @@ auto communication_libftdi::devices(
             if (identification.vendor_id != 0x0000 &&
                 identification.vendor_id != device_description.idVendor)
             {
-                spdlog::debug("Found device VID{}:PID{}, requested VID{}, skipping.",
-                    device_description.idVendor, device_description.idProduct,
-                    identification.vendor_id);
+                spdlog::get("libkommpot")
+                    ->debug("Found device VID{}:PID{}, requested VID{}, skipping.",
+                        device_description.idVendor, device_description.idProduct,
+                        identification.vendor_id);
                 continue;
             }
 
@@ -99,9 +103,10 @@ auto communication_libftdi::devices(
             if (identification.product_id != 0x0000 &&
                 identification.product_id != device_description.idProduct)
             {
-                spdlog::debug("Found device VID{}:PID{}, requested PID{}, skipping.",
-                    device_description.idVendor, device_description.idProduct,
-                    identification.product_id);
+                spdlog::get("libkommpot")
+                    ->debug("Found device VID{}:PID{}, requested PID{}, skipping.",
+                        device_description.idVendor, device_description.idProduct,
+                        identification.product_id);
                 continue;
             }
 
@@ -119,8 +124,9 @@ auto communication_libftdi::devices(
             if (!identification.serial_number.empty() &&
                 identification.serial_number != information.serial_number)
             {
-                spdlog::debug("Found device {}, requested {}, skipping.",
-                    identification.serial_number, information.serial_number);
+                spdlog::get("libkommpot")
+                    ->debug("Found device {}, requested {}, skipping.",
+                        identification.serial_number, information.serial_number);
                 continue;
             }
 
@@ -129,8 +135,9 @@ auto communication_libftdi::devices(
              */
             if (!identification.port.empty() && identification.port != information.port)
             {
-                spdlog::debug("Found device at port {}, requested at port {}, skipping.",
-                    identification.port, information.port);
+                spdlog::get("libkommpot")
+                    ->debug("Found device at port {}, requested at port {}, skipping.",
+                        identification.port, information.port);
                 continue;
             }
 
@@ -138,7 +145,7 @@ auto communication_libftdi::devices(
                 std::make_unique<communication_libftdi>(information);
             if (!device)
             {
-                spdlog::error("std::make_unique() failed creating the device!");
+                spdlog::get("libkommpot")->error("std::make_unique() failed creating the device!");
                 continue;
             }
 
@@ -162,7 +169,7 @@ auto communication_libftdi::open() -> bool
         m_ftdi_context = ftdi_new();
         if (m_ftdi_context == nullptr)
         {
-            spdlog::error("ftdi_new() failed with error");
+            spdlog::get("libkommpot")->error("ftdi_new() failed with error");
             return false;
         }
     }
@@ -171,8 +178,9 @@ auto communication_libftdi::open() -> bool
         m_information.product_id, nullptr, m_information.serial_number.c_str());
     if (result_code < 0)
     {
-        spdlog::error("ftdi_usb_open_desc() failed with error {} [{}]",
-            ftdi_get_error_string(m_ftdi_context), result_code);
+        spdlog::get("libkommpot")
+            ->error("ftdi_usb_open_desc() failed with error {} [{}]",
+                ftdi_get_error_string(m_ftdi_context), result_code);
         return false;
     }
 
@@ -180,8 +188,9 @@ auto communication_libftdi::open() -> bool
         ftdi_set_bitmode(m_ftdi_context, m_configuration.bit_mask, m_configuration.bit_mode);
     if (result_code < 0)
     {
-        spdlog::error("ftdi_set_bitmode() failed with error {} [{}]",
-            ftdi_get_error_string(m_ftdi_context), result_code);
+        spdlog::get("libkommpot")
+            ->error("ftdi_set_bitmode() failed with error {} [{}]",
+                ftdi_get_error_string(m_ftdi_context), result_code);
         return false;
     }
 
@@ -200,8 +209,9 @@ void communication_libftdi::close()
     int result_code = ftdi_usb_close(m_ftdi_context);
     if (result_code < 0)
     {
-        spdlog::error("ftdi_usb_close() failed with error {} [{}]",
-            ftdi_get_error_string(m_ftdi_context), result_code);
+        spdlog::get("libkommpot")
+            ->error("ftdi_usb_close() failed with error {} [{}]",
+                ftdi_get_error_string(m_ftdi_context), result_code);
     }
 
     m_is_device_opened = false;
@@ -216,8 +226,9 @@ auto communication_libftdi::endpoints() -> std::vector<kommpot::endpoint_informa
         libusb_get_device(m_ftdi_context->usb_dev), &config_descriptor);
     if (result_code < 0)
     {
-        spdlog::error("libusb_get_active_config_descriptor() failed with error {} [{}]",
-            libusb_error_name(result_code), result_code);
+        spdlog::get("libkommpot")
+            ->error("libusb_get_active_config_descriptor() failed with error {} [{}]",
+                libusb_error_name(result_code), result_code);
         return {};
     }
 
@@ -254,8 +265,9 @@ auto communication_libftdi::read(
     const int result_code = ftdi_read_pins(m_ftdi_context, reinterpret_cast<uint8_t *>(data));
     if (result_code < 0)
     {
-        spdlog::error("ftdi_read_pins() failed with error {} [{}]",
-            ftdi_get_error_string(m_ftdi_context), result_code);
+        spdlog::get("libkommpot")
+            ->error("ftdi_read_pins() failed with error {} [{}]",
+                ftdi_get_error_string(m_ftdi_context), result_code);
         return false;
     }
 
@@ -269,8 +281,9 @@ auto communication_libftdi::write(
         ftdi_write_data(m_ftdi_context, reinterpret_cast<uint8_t *>(data), size_bytes);
     if (result_code < 0)
     {
-        spdlog::error("ftdi_write_data() failed with error {} [{}]",
-            ftdi_get_error_string(m_ftdi_context), result_code);
+        spdlog::get("libkommpot")
+            ->error("ftdi_write_data() failed with error {} [{}]",
+                ftdi_get_error_string(m_ftdi_context), result_code);
         return false;
     }
 
@@ -294,8 +307,9 @@ auto communication_libftdi::get_port_path(libusb_device *device) -> std::string
     int result_code = libusb_get_port_numbers(device, port_numbers.data(), port_numbers.size());
     if (result_code <= 0)
     {
-        spdlog::error("libusb_get_port_numbers() failed with error {} [{}]",
-            libusb_error_name(result_code), result_code);
+        spdlog::get("libkommpot")
+            ->error("libusb_get_port_numbers() failed with error {} [{}]",
+                libusb_error_name(result_code), result_code);
         return {};
     }
 
