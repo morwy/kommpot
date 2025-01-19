@@ -325,7 +325,6 @@ class spdlog_initializer
 public:
     spdlog_initializer();
 };
-static spdlog_initializer gs_initializer;
 } // namespace kommpot
 
 #endif // LIBKOMMPOT_H

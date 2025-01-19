@@ -11,6 +11,10 @@
 #include <utility>
 #include <vector>
 
+namespace kommpot {
+static spdlog_initializer gs_initializer;
+}
+
 kommpot::spdlog_initializer::spdlog_initializer()
 {
     static auto console = spdlog::stdout_color_mt("libkommpot");
