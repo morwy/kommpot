@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace kommpot {
@@ -59,46 +60,6 @@ private:
 auto EXPORTED get_version() noexcept -> version;
 
 /**
- * @brief structure containing various parameters.
- */
-struct dynamic_parameters
-{
-public:
-    template<typename T>
-    void set(const std::string &key, T value)
-    {
-        data[key] = value;
-    }
-
-    template<typename T>
-    T get(const std::string &key, const T &defaultValue = T{}) const
-    {
-        auto it = data.find(key);
-        if (it != data.end())
-        {
-            try
-            {
-                return std::any_cast<T>(it->second);
-            }
-            catch (const std::bad_any_cast &)
-            {
-                return defaultValue;
-            }
-        }
-
-        return defaultValue;
-    }
-
-    bool exists(const std::string &key) const
-    {
-        return data.count(key) > 0;
-    }
-
-private:
-    std::unordered_map<std::string, std::any> data;
-};
-
-/**
  * @brief states types of endpoint.
  */
 enum class endpoint_type : uint8_t
@@ -116,9 +77,31 @@ struct endpoint_information
 public:
     endpoint_type type = endpoint_type::UNKNOWN;
     int address = 0;
-
-    dynamic_parameters parameters;
 };
+
+/**
+ * @brief states types of transfer.
+ */
+struct control_transfer_configuration
+{
+    uint8_t request_type = 0;
+    uint8_t request = 0;
+    uint16_t value = 0;
+    uint16_t index = 0;
+};
+
+struct bulk_transfer_configuration
+{
+    uint8_t endpoint = 0;
+};
+
+struct interrupt_transfer_configuration
+{
+    uint8_t endpoint = 0;
+};
+
+using transfer_configuration = std::variant<bulk_transfer_configuration,
+    control_transfer_configuration, interrupt_transfer_configuration>;
 
 /**
  * @brief states types of communications.
@@ -270,7 +253,7 @@ public:
      * @param size_bytes states max buffer size.
      * @return true if read was successful, false if any error happened.
      */
-    virtual auto read(const endpoint_information &endpoint, void *data, size_t size_bytes)
+    virtual auto read(const transfer_configuration &configuration, void *data, size_t size_bytes)
         -> bool = 0;
 
     /**
@@ -280,7 +263,7 @@ public:
      * @param size_bytes states max buffer size.
      * @return true if write was successful, false if any error happened.
      */
-    virtual auto write(const endpoint_information &endpoint, void *data, size_t size_bytes)
+    virtual auto write(const transfer_configuration &configuration, void *data, size_t size_bytes)
         -> bool = 0;
 
     /**

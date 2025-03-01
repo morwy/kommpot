@@ -30,9 +30,9 @@ public:
 
     auto endpoints() -> std::vector<kommpot::endpoint_information> override;
 
-    auto read(const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes)
+    auto read(const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes)
         -> bool override;
-    auto write(const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes)
+    auto write(const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes)
         -> bool override;
 
     [[nodiscard]] auto get_error_string(const uint32_t &native_error_code) const

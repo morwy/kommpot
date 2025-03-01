@@ -277,89 +277,15 @@ auto communication_libusb::endpoints() -> std::vector<kommpot::endpoint_informat
 }
 
 auto communication_libusb::read(
-    const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes) -> bool
+    const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes) -> bool
 {
-    auto *data_ptr = reinterpret_cast<unsigned char *>(data);
-
-    if (endpoint.parameters.exists("libusb_transfer_type"))
-    {
-        std::string transfer_type = endpoint.parameters.get<std::string>("libusb_transfer_type");
-        if (transfer_type == "control")
-        {
-            int request_type = endpoint.parameters.get<int>("libusb_ctrl_type");
-            int request = endpoint.parameters.get<int>("libusb_ctrl_request");
-            int value = endpoint.parameters.get<int>("libusb_ctrl_value");
-            int index = endpoint.parameters.get<int>("libusb_ctrl_index");
-
-            int result_code = libusb_control_transfer(m_device_handle, request_type, request, value,
-                index, data_ptr, size_bytes, M_TRANSFER_TIMEOUT_MSEC);
-            if (result_code < 0)
-            {
-                spdlog::get("libkommpot")
-                    ->error("libusb_control_transfer() failed with error {} [{}]",
-                        libusb_error_name(result_code), result_code);
-                return false;
-            }
-
-            return true;
-        }
-    }
-
-    int size_bytes_written = 0;
-    int result_code = libusb_bulk_transfer(m_device_handle, endpoint.address, data_ptr, size_bytes,
-        &size_bytes_written, M_TRANSFER_TIMEOUT_MSEC);
-    if (result_code < 0)
-    {
-        spdlog::get("libkommpot")
-            ->error("libusb_bulk_transfer() failed with error {} [{}]",
-                libusb_error_name(result_code), result_code);
-        return false;
-    }
-
-    return true;
+    return transfer(configuration, data, size_bytes);
 }
 
 auto communication_libusb::write(
-    const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes) -> bool
+    const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes) -> bool
 {
-    auto *data_ptr = reinterpret_cast<unsigned char *>(data);
-
-    if (endpoint.parameters.exists("libusb_transfer_type"))
-    {
-        std::string transfer_type = endpoint.parameters.get<std::string>("libusb_transfer_type");
-        if (transfer_type == "control")
-        {
-            int request_type = endpoint.parameters.get<int>("libusb_ctrl_type");
-            int request = endpoint.parameters.get<int>("libusb_ctrl_request");
-            int value = endpoint.parameters.get<int>("libusb_ctrl_value");
-            int index = endpoint.parameters.get<int>("libusb_ctrl_index");
-
-            int result_code = libusb_control_transfer(m_device_handle, request_type, request, value,
-                index, data_ptr, size_bytes, M_TRANSFER_TIMEOUT_MSEC);
-            if (result_code < 0)
-            {
-                spdlog::get("libkommpot")
-                    ->error("libusb_control_transfer() failed with error {} [{}]",
-                        libusb_error_name(result_code), result_code);
-                return false;
-            }
-
-            return true;
-        }
-    }
-
-    int size_bytes_written = 0;
-    int result_code = libusb_bulk_transfer(m_device_handle, endpoint.address, data_ptr, size_bytes,
-        &size_bytes_written, M_TRANSFER_TIMEOUT_MSEC);
-    if (result_code < 0)
-    {
-        spdlog::get("libkommpot")
-            ->error("libusb_bulk_transfer() failed with error {} [{}]",
-                libusb_error_name(result_code), result_code);
-        return false;
-    }
-
-    return true;
+    return transfer(configuration, data, size_bytes);
 }
 
 auto communication_libusb::get_error_string(const uint32_t &native_error_code) const -> std::string
@@ -423,4 +349,64 @@ auto communication_libusb::get_port_path(libusb_device_handle *device_handle) ->
     }
 
     return stream.str();
+}
+
+bool communication_libusb::transfer(
+    const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes)
+{
+    auto *data_ptr = reinterpret_cast<unsigned char *>(data);
+
+    auto result = std::visit(
+        [&](const auto &s) {
+            if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                              kommpot::bulk_transfer_configuration>)
+            {
+                int size_bytes_written = 0;
+                int result_code = libusb_bulk_transfer(m_device_handle, s.endpoint, data_ptr,
+                    size_bytes, &size_bytes_written, M_TRANSFER_TIMEOUT_MSEC);
+                if (result_code < 0)
+                {
+                    spdlog::get("libkommpot")
+                        ->error("libusb_bulk_transfer() failed with error {} [{}]",
+                            libusb_error_name(result_code), result_code);
+                    return false;
+                }
+
+                return true;
+            }
+            else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                                   kommpot::control_transfer_configuration>)
+            {
+                int result_code = libusb_control_transfer(m_device_handle, s.request_type,
+                    s.request, s.value, s.index, data_ptr, size_bytes, M_TRANSFER_TIMEOUT_MSEC);
+                if (result_code < 0)
+                {
+                    spdlog::get("libkommpot")
+                        ->error("libusb_control_transfer() failed with error {} [{}]",
+                            libusb_error_name(result_code), result_code);
+                    return false;
+                }
+
+                return true;
+            }
+            else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                                   kommpot::interrupt_transfer_configuration>)
+            {
+                int size_bytes_written = 0;
+                int result_code = libusb_interrupt_transfer(m_device_handle, s.endpoint, data_ptr,
+                    size_bytes, &size_bytes_written, M_TRANSFER_TIMEOUT_MSEC);
+                if (result_code < 0)
+                {
+                    spdlog::get("libkommpot")
+                        ->error("libusb_interrupt_transfer() failed with error {} [{}]",
+                            libusb_error_name(result_code), result_code);
+                    return false;
+                }
+
+                return true;
+            }
+        },
+        configuration);
+
+    return result;
 }

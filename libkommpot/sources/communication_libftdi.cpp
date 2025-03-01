@@ -260,7 +260,7 @@ auto communication_libftdi::endpoints() -> std::vector<kommpot::endpoint_informa
 }
 
 auto communication_libftdi::read(
-    const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes) -> bool
+    const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes) -> bool
 {
     const int result_code = ftdi_read_pins(m_ftdi_context, reinterpret_cast<uint8_t *>(data));
     if (result_code < 0)
@@ -275,7 +275,7 @@ auto communication_libftdi::read(
 }
 
 auto communication_libftdi::write(
-    const kommpot::endpoint_information &endpoint, void *data, size_t size_bytes) -> bool
+    const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes) -> bool
 {
     const int result_code =
         ftdi_write_data(m_ftdi_context, reinterpret_cast<uint8_t *>(data), size_bytes);
