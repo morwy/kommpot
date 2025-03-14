@@ -23,6 +23,11 @@ include(ProjectVersion.cmake)
 include(ConvenienceDefinitions.cmake)
 
 #
+# Tests.
+#
+option(KOMMPOT_ENABLE_TESTING "Enable testing" OFF)
+
+#
 # Set output folder for binaries.
 #
 set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR})
@@ -233,10 +238,12 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../third-party/spdlog/include/)
 # Add projects.
 #
 add_subdirectory(libkommpot)
-add_subdirectory(libkommpot-test-app)
+# add_subdirectory(libkommpot-test-app)
 
 #
 # Add tests.
 #
-enable_testing()
-add_subdirectory(tests)
+if(KOMMPOT_ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
