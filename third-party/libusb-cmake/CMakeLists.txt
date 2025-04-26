@@ -17,6 +17,10 @@ project(${LIBUSB_PROJECT_NAME}
     VERSION ${LIBUSB_VERSION}
     LANGUAGES C
 )
+if(EMSCRIPTEN)
+    set(CMAKE_CXX_STANDARD 20)
+    enable_language(CXX)
+endif()
 
 # This function generates all the local variables what end up getting written to config.
 # We use a function as any vars set in this context don't mess with the rest of the file.
@@ -156,6 +160,7 @@ if(WIN32)
     )
     target_compile_definitions(${LIBUSB_PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS=1>)
     target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE windowsapp)
+    set_target_properties(${LIBUSB_PROJECT_NAME} PROPERTIES UNITY_BUILD OFF)
 else()
     # common POSIX/non-Windows sources
     target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
@@ -207,6 +212,11 @@ else()
         target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
             "${LIBUSB_ROOT}/os/openbsd_usb.c"
         )
+    elseif(EMSCRIPTEN)
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
+            "${LIBUSB_ROOT}/os/emscripten_webusb.cpp"
+        )
+        target_compile_options(${LIBUSB_PROJECT_NAME} PRIVATE -pthread)
     else()
         message(FATAL_ERROR "Unsupported target platform: ${CMAKE_SYSTEM_NAME}")
     endif()
