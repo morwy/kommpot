@@ -24,6 +24,8 @@ communication_libftdi::communication_libftdi(const kommpot::communication_inform
 
 communication_libftdi::~communication_libftdi()
 {
+    close();
+
     if (m_ftdi_context != nullptr)
     {
         ftdi_free(m_ftdi_context);
@@ -206,6 +208,11 @@ auto communication_libftdi::is_open() -> bool
 
 void communication_libftdi::close()
 {
+    if (m_ftdi_context == nullptr)
+    {
+        return;
+    }
+
     int result_code = ftdi_usb_close(m_ftdi_context);
     if (result_code < 0)
     {

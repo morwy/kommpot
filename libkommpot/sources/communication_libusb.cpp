@@ -21,6 +21,16 @@ communication_libusb::communication_libusb(const kommpot::communication_informat
     m_type = kommpot::communication_type::LIBUSB;
 }
 
+communication_libusb::~communication_libusb()
+{
+    close();
+
+    if (m_libusb_context != nullptr)
+    {
+        libusb_exit(m_libusb_context);
+    }
+}
+
 auto communication_libusb::devices(
     const std::vector<kommpot::device_identification> &identifications)
     -> std::vector<std::unique_ptr<kommpot::device_communication>>

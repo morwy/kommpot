@@ -17,6 +17,7 @@ class communication_libusb : public kommpot::device_communication
 {
 public:
     explicit communication_libusb(const kommpot::communication_information &information);
+    ~communication_libusb() override;
 
     static auto devices(const std::vector<kommpot::device_identification> &identifications)
         -> std::vector<std::unique_ptr<kommpot::device_communication>>;
