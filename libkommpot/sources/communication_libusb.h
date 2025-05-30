@@ -24,7 +24,7 @@ public:
 
     auto open() -> bool override;
     auto is_open() -> bool override;
-    void close() override;
+    auto close() -> void override;
 
     auto endpoints() -> std::vector<kommpot::endpoint_information> override;
 

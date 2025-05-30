@@ -206,7 +206,7 @@ auto communication_libftdi::is_open() -> bool
     return m_is_device_opened;
 }
 
-void communication_libftdi::close()
+auto communication_libftdi::close() -> void
 {
     if (m_ftdi_context == nullptr)
     {

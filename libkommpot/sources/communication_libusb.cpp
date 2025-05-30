@@ -233,7 +233,7 @@ auto communication_libusb::is_open() -> bool
     return m_device_handle != nullptr;
 }
 
-void communication_libusb::close()
+auto communication_libusb::close() -> void
 {
     if (m_device_handle == nullptr)
     {
