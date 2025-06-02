@@ -15,6 +15,7 @@
 #endif
 
 #ifdef __APPLE__
+#    include <spdlog/sinks/syslog_sink.h>
 #endif
 
 kommpot_core::kommpot_core() {}

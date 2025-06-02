@@ -7,7 +7,9 @@
 #include <spdlog/spdlog.h>
 
 constexpr auto LOGGER_NAME = "kommpot";
+
 #define KOMMPOT_LOGGER spdlog::get(LOGGER_NAME)
+
 #define LOG_TRACE KOMMPOT_LOGGER->trace
 #define LOG_DEBUG KOMMPOT_LOGGER->debug
 #define LOG_INFO KOMMPOT_LOGGER->info
