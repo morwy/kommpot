@@ -50,6 +50,9 @@ private:
 
     auto transfer(const kommpot::transfer_configuration &configuration, void *data,
         size_t size_bytes) -> bool;
+
+    static auto strip_trailing_lf(std::string string) -> std::string;
+    static auto log(libusb_context *context, libusb_log_level level, const char *message) -> void;
 };
 
 #endif // COMMUNICATION_LIBUSB_H
