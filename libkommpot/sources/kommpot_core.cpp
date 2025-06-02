@@ -103,12 +103,12 @@ auto kommpot_core::initialize_logger() -> void
     KOMMPOT_LOGGER->set_level(spdlog::level::level_enum(m_settings.logging_level));
     KOMMPOT_LOGGER->set_pattern(m_settings.logging_pattern);
 
-    LOG_DEBUG("A new logging session is started.");
+    SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "A new logging session is started.");
 }
 
 auto kommpot_core::deinitialize_logger() -> void
 {
-    LOG_DEBUG("The logging session is finished.");
+    SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "The logging session is finished.");
     KOMMPOT_LOGGER->flush();
     spdlog::drop(LOGGER_NAME);
 }
