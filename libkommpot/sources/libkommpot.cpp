@@ -1,6 +1,8 @@
 #include "libkommpot.h"
 
-#include "communication_libusb.h"
+#include <communication_libusb.h>
+#include <kommpot_core.h>
+#include <kommpot_initializer.h>
 
 #include <cstdint>
 #include <iterator>
@@ -12,12 +14,17 @@
 #include <vector>
 
 namespace kommpot {
-static spdlog_initializer gs_initializer;
+extern kommpot_initializer s_library_initializer;
+} // namespace kommpot
+
+auto kommpot::settings() noexcept -> kommpot::settings_structure
+{
+    return kommpot_core::instance().settings();
 }
 
-kommpot::spdlog_initializer::spdlog_initializer()
+auto kommpot::set_settings(const settings_structure &settings) noexcept -> void
 {
-    static auto console = spdlog::stdout_color_mt("libkommpot");
+    kommpot_core::instance().set_settings(settings);
 }
 
 kommpot::version::version(const uint8_t major, const uint8_t minor, const uint8_t micro,

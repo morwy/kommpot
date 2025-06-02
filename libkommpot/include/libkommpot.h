@@ -5,16 +5,63 @@
 
 #include "export_definitions.h"
 
-#include <any>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
 namespace kommpot {
+/**
+ * @brief states levels of logging.
+ */
+enum class logging_level : uint8_t
+{
+    TRACE = 0,
+    DEBUG = 1,
+    INFO = 2,
+    WARN = 3,
+    ERR = 4,
+    CRIT = 5,
+    OFF = 6
+};
+
+/**
+ * @brief
+ */
+struct EXPORTED callback_response_structure
+{
+    kommpot::logging_level level = kommpot::logging_level::ERR;
+    const char* file = nullptr;
+    int line = 0;
+    const char* function = nullptr;
+    std::string message = "";
+};
+
+/**
+ * @brief
+ */
+struct EXPORTED settings_structure
+{
+    kommpot::logging_level logging_level = kommpot::logging_level::ERR;
+    std::function<void(callback_response_structure)> logging_callback = nullptr;
+    std::string logging_pattern = "%+";
+};
+
+/**
+ * @brief gets current settings of kommpot library.
+ * @return settings structure.
+ */
+auto EXPORTED settings() noexcept -> settings_structure;
+
+/**
+ * @brief sets the new settings of kommpot library.
+ * @param settings structure.
+ */
+auto EXPORTED set_settings(const settings_structure &settings) noexcept -> void;
+
 /**
  * @brief structure containing version of kommpot library.
  */
@@ -302,12 +349,6 @@ protected:
  */
 auto EXPORTED devices(const std::vector<device_identification> &identifications = {})
     -> std::vector<std::unique_ptr<kommpot::device_communication>>;
-
-class spdlog_initializer
-{
-public:
-    spdlog_initializer();
-};
 } // namespace kommpot
 
 #endif // LIBKOMMPOT_H

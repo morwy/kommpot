@@ -1,6 +1,8 @@
 set(PROJECT_NAME "kommpot")
 project(${PROJECT_NAME} LANGUAGES CXX C)
 
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
 #
 # Set include libraries.
 #
