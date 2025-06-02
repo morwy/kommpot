@@ -6,6 +6,7 @@
 #include "libkommpot.h"
 
 #include "third-party/libftdi/src/ftdi.h"
+#include "third-party/libusb-cmake/libusb/libusb/libusb.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -46,6 +47,9 @@ private:
     static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;
 
     static auto get_port_path(libusb_device *device) -> std::string;
+
+    static auto strip_trailing_lf(std::string string) -> std::string;
+    static auto log(libusb_context *context, libusb_log_level level, const char *message) -> void;
 };
 
 #endif // COMMUNICATION_LIBFTDI_H
