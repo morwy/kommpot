@@ -10,12 +10,12 @@ constexpr auto LOGGER_NAME = "kommpot";
 
 #define KOMMPOT_LOGGER spdlog::get(LOGGER_NAME)
 
-#define LOG_TRACE(...) (KOMMPOT_LOGGER)->trace(__VA_ARGS__)
-#define LOG_DEBUG(...) (KOMMPOT_LOGGER)->debug(__VA_ARGS__)
-#define LOG_INFO(...) (KOMMPOT_LOGGER)->info(__VA_ARGS__)
-#define LOG_WARN(...) (KOMMPOT_LOGGER)->warn(__VA_ARGS__)
-#define LOG_ERROR(...) (KOMMPOT_LOGGER)->error(__VA_ARGS__)
-#define LOG_CRITICAL(...) (KOMMPOT_LOGGER)->critical(__VA_ARGS__)
+#define LOG_TRACE(...) (spdlog::get(LOGGER_NAME))->trace(__VA_ARGS__)
+#define LOG_DEBUG(...) (spdlog::get(LOGGER_NAME))->debug(__VA_ARGS__)
+#define LOG_INFO(...) (spdlog::get(LOGGER_NAME))->info(__VA_ARGS__)
+#define LOG_WARN(...) (spdlog::get(LOGGER_NAME))->warn(__VA_ARGS__)
+#define LOG_ERROR(...) (spdlog::get(LOGGER_NAME))->error(__VA_ARGS__)
+#define LOG_CRITICAL(...) (spdlog::get(LOGGER_NAME))->critical(__VA_ARGS__)
 
 class kommpot_core
 {
