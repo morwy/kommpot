@@ -116,6 +116,11 @@ auto kommpot_core::initialize_logger() -> void
 
 auto kommpot_core::deinitialize_logger() -> void
 {
+    if (KOMMPOT_LOGGER == nullptr)
+    {
+        return;
+    }
+
     SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "The logging session is finished.");
     KOMMPOT_LOGGER->flush();
     spdlog::drop(LOGGER_NAME);
