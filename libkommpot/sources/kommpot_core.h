@@ -26,7 +26,7 @@ public:
 
 private:
     kommpot::settings_structure m_settings;
-    std::shared_ptr<spdlog::logger> m_logger;
+    std::shared_ptr<spdlog::logger> m_logger = nullptr;
 
     kommpot_core();
     ~kommpot_core();

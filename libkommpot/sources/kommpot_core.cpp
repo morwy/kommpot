@@ -76,13 +76,13 @@ auto kommpot_core::initialize_logger() -> void
 
 #ifdef __linux__
         auto syslog_sink =
-            std::make_shared<spdlog::sinks::syslog_sink_mt>("kommpot", 0, LOG_USER, false);
+            std::make_shared<spdlog::sinks::syslog_sink_mt>(LOGGER_NAME, 0, LOG_USER, false);
         new_sinks.push_back(syslog_sink);
 #endif
 
 #ifdef __APPLE__
         auto syslog_sink =
-            std::make_shared<spdlog::sinks::syslog_sink_mt>("kommpot", 0, LOG_USER, false);
+            std::make_shared<spdlog::sinks::syslog_sink_mt>(LOGGER_NAME, 0, LOG_USER, false);
         new_sinks.push_back(syslog_sink);
 #endif
     }
@@ -103,12 +103,12 @@ auto kommpot_core::initialize_logger() -> void
     KOMMPOT_LOGGER->set_level(spdlog::level::level_enum(m_settings.logging_level));
     KOMMPOT_LOGGER->set_pattern(m_settings.logging_pattern);
 
-    SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "A new logging session is started.");
+    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "A new logging session is started.");
 }
 
 auto kommpot_core::deinitialize_logger() -> void
 {
-    SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "The logging session is finished.");
+    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "The logging session is finished.");
     KOMMPOT_LOGGER->flush();
     spdlog::drop(LOGGER_NAME);
 }
