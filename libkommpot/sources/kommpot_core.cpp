@@ -33,7 +33,15 @@ auto kommpot_core::settings() noexcept -> kommpot::settings_structure
 auto kommpot_core::set_settings(const kommpot::settings_structure &settings) noexcept -> void
 {
     m_settings = settings;
-    initialize_logger();
+
+    if (m_settings.logging_level == kommpot::logging_level::OFF)
+    {
+        deinitialize_logger();
+    }
+    else
+    {
+        initialize_logger();
+    }
 }
 
 auto kommpot_core::initialize_logger() -> void
