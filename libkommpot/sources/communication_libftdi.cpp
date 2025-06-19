@@ -35,9 +35,9 @@ communication_libftdi::~communication_libftdi()
 
 auto communication_libftdi::devices(
     const std::vector<kommpot::device_identification> &identifications)
-    -> std::vector<std::unique_ptr<kommpot::device_communication>>
+    -> std::vector<std::shared_ptr<kommpot::device_communication>>
 {
-    std::vector<std::unique_ptr<kommpot::device_communication>> devices;
+    std::vector<std::shared_ptr<kommpot::device_communication>> devices;
 
     ftdi_context *ftdi_context = ftdi_new();
     if (ftdi_context == nullptr)
@@ -141,16 +141,16 @@ auto communication_libftdi::devices(
                 continue;
             }
 
-            std::unique_ptr<kommpot::device_communication> device =
-                std::make_unique<communication_libftdi>(information);
+            std::shared_ptr<kommpot::device_communication> device =
+                std::make_shared<communication_libftdi>(information);
             if (!device)
             {
                 SPDLOG_LOGGER_ERROR(
-                    KOMMPOT_LOGGER, "std::make_unique() failed creating the device!");
+                    KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
                 continue;
             }
 
-            devices.push_back(std::move(device));
+            devices.push_back(device);
 
             break;
         }

@@ -29,9 +29,9 @@ communication_libusb::~communication_libusb()
 
 auto communication_libusb::devices(
     const std::vector<kommpot::device_identification> &identifications)
-    -> std::vector<std::unique_ptr<kommpot::device_communication>>
+    -> std::vector<std::shared_ptr<kommpot::device_communication>>
 {
-    std::vector<std::unique_ptr<kommpot::device_communication>> devices;
+    std::vector<std::shared_ptr<kommpot::device_communication>> devices;
 
     int result_code = libusb_init(nullptr);
     if (result_code != 0)
@@ -134,16 +134,16 @@ auto communication_libusb::devices(
                 continue;
             }
 
-            std::unique_ptr<kommpot::device_communication> device =
-                std::make_unique<communication_libusb>(information);
+            std::shared_ptr<kommpot::device_communication> device =
+                std::make_shared<communication_libusb>(information);
             if (!device)
             {
                 SPDLOG_LOGGER_ERROR(
-                    KOMMPOT_LOGGER, "std::make_unique() failed creating the device!");
+                    KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
                 continue;
             }
 
-            devices.push_back(std::move(device));
+            devices.push_back(device);
 
             break;
         }

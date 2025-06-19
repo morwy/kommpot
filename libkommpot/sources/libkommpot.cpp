@@ -101,9 +101,9 @@ auto kommpot::device_communication::type() const -> kommpot::communication_type
 }
 
 auto kommpot::devices(const std::vector<device_identification> &identifications)
-    -> std::vector<std::unique_ptr<kommpot::device_communication>>
+    -> std::vector<std::shared_ptr<kommpot::device_communication>>
 {
-    std::vector<std::unique_ptr<kommpot::device_communication>> device_list;
+    std::vector<std::shared_ptr<kommpot::device_communication>> device_list;
 
     /**
      * @brief libusb devices.

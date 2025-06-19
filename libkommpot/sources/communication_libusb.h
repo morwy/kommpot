@@ -20,7 +20,7 @@ public:
     ~communication_libusb() override;
 
     static auto devices(const std::vector<kommpot::device_identification> &identifications)
-        -> std::vector<std::unique_ptr<kommpot::device_communication>>;
+        -> std::vector<std::shared_ptr<kommpot::device_communication>>;
 
     auto open() -> bool override;
     auto is_open() -> bool override;
