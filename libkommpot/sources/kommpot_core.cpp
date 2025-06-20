@@ -1,6 +1,5 @@
 #include "kommpot_core.h"
 
-#include <iostream>
 #include <spdlog/async.h>
 #include <spdlog/sinks/callback_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -18,11 +17,16 @@
 #    include <spdlog/sinks/syslog_sink.h>
 #endif
 
-kommpot_core::kommpot_core() {}
+auto kommpot_core::initialize() -> bool
+{
+    initialize_logger();
+    return true;
+}
 
-kommpot_core::~kommpot_core()
+auto kommpot_core::deinitialize() -> bool
 {
     deinitialize_logger();
+    return true;
 }
 
 auto kommpot_core::settings() noexcept -> kommpot::settings_structure

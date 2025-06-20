@@ -21,6 +21,9 @@ public:
     kommpot_core(const kommpot_core &) = delete;
     auto operator=(const kommpot_core &) -> void = delete;
 
+    auto initialize() -> bool;
+    auto deinitialize() -> bool;
+
     auto settings() noexcept -> kommpot::settings_structure;
     auto set_settings(const kommpot::settings_structure &settings) noexcept -> void;
 
@@ -28,8 +31,8 @@ private:
     kommpot::settings_structure m_settings;
     std::shared_ptr<spdlog::logger> m_logger = nullptr;
 
-    kommpot_core();
-    ~kommpot_core();
+    kommpot_core() = default;
+    ~kommpot_core() = default;
 
     auto initialize_logger() -> void;
     auto deinitialize_logger() -> void;

@@ -2,7 +2,6 @@
 
 #include <communication_libusb.h>
 #include <kommpot_core.h>
-#include <kommpot_initializer.h>
 
 #include <cstdint>
 #include <iterator>
@@ -13,9 +12,15 @@
 #include <utility>
 #include <vector>
 
-namespace kommpot {
-extern kommpot_initializer s_library_initializer;
-} // namespace kommpot
+auto kommpot::initialize() -> bool
+{
+    return kommpot_core::instance().initialize();
+}
+
+auto kommpot::deinitialize() -> bool
+{
+    return kommpot_core::instance().deinitialize();
+}
 
 auto kommpot::settings() noexcept -> kommpot::settings_structure
 {

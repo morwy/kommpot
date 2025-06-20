@@ -15,6 +15,21 @@
 
 namespace kommpot {
 /**
+ * @brief initializes kommpot library.
+ * @return true if initialization was successful, false if any error happened.
+ * @attention this function should be called only once, before any other kommpot functions are
+ * called.
+ */
+auto EXPORTED initialize() -> bool;
+
+/**
+ * @brief deinitializes kommpot library.
+ * @return true if deinitialization was successful, false if any error happened.
+ * @attention this function should be called only once, after all other kommpot functions are done.
+ */
+auto EXPORTED deinitialize() -> bool;
+
+/**
  * @brief states levels of logging.
  */
 enum class logging_level : uint8_t
@@ -34,9 +49,9 @@ enum class logging_level : uint8_t
 struct EXPORTED callback_response_structure
 {
     kommpot::logging_level level = kommpot::logging_level::ERR;
-    const char* file = nullptr;
+    const char *file = nullptr;
     int line = 0;
-    const char* function = nullptr;
+    const char *function = nullptr;
     std::string message = "";
 };
 
