@@ -11,7 +11,6 @@
 #include <memory>
 #include <sstream>
 #include <string>
-#include <utility>
 #include <vector>
 
 libusb_context *communication_libusb::m_libusb_context = nullptr;
@@ -64,6 +63,24 @@ auto communication_libusb::devices(
             continue;
         }
 
+        const bool is_required_vid = std::any_of(identifications.begin(), identifications.end(),
+            [&](const kommpot::device_identification &item) {
+                return item.vendor_id == 0x0000 || item.vendor_id == device_description.idVendor;
+            });
+        if (!is_required_vid)
+        {
+            continue;
+        }
+
+        const bool is_required_pid = std::any_of(identifications.begin(), identifications.end(),
+            [&](const kommpot::device_identification &item) {
+                return item.product_id == 0x0000 || item.product_id == device_description.idProduct;
+            });
+        if (!is_required_pid)
+        {
+            continue;
+        }
+
         libusb_device_handle *device_handle = nullptr;
         result_code = libusb_open(device_list[device_index], &device_handle);
         if (result_code != 0)
@@ -87,38 +104,12 @@ auto communication_libusb::devices(
         for (const auto &identification : identifications)
         {
             /**
-             * Filter device by VendorID.
-             */
-            if (identification.vendor_id != 0x0000 &&
-                identification.vendor_id != device_description.idVendor)
-            {
-                SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER,
-                    "Found device VID{:04X}:PID{:04X}, requested VID{:04X}, skipping.",
-                    device_description.idVendor, device_description.idProduct,
-                    identification.vendor_id);
-                continue;
-            }
-
-            /**
-             * Filter device by ProductID.
-             */
-            if (identification.product_id != 0x0000 &&
-                identification.product_id != device_description.idProduct)
-            {
-                SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER,
-                    "Found device VID{:04X}:PID{:04X}, requested PID{:04X}, skipping.",
-                    device_description.idVendor, device_description.idProduct,
-                    identification.product_id);
-                continue;
-            }
-
-            /**
              * Filter device by serial number.
              */
             if (!identification.serial_number.empty() &&
                 identification.serial_number != information.serial_number)
             {
-                SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Found device {}, requested {}, skipping.",
+                SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Found device {}, requested {}, skipping.",
                     identification.serial_number, information.serial_number);
                 continue;
             }
@@ -128,7 +119,7 @@ auto communication_libusb::devices(
              */
             if (!identification.port.empty() && identification.port != information.port)
             {
-                SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER,
+                SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
                     "Found device at port {}, requested at port {}, skipping.", identification.port,
                     information.port);
                 continue;
@@ -200,6 +191,28 @@ auto communication_libusb::open() -> bool
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
                 "libusb_get_device_descriptor() failed with error {} [{}]",
                 libusb_error_name(result_code), result_code);
+            continue;
+        }
+
+        /**
+         * Skip FTDI devices, since they will be handled by communication_libftdi.
+         */
+        if (device_description.idVendor == communication_libftdi::VENDOR_ID)
+        {
+            continue;
+        }
+
+        const bool is_required_vid = m_information.vendor_id == 0x0000 ||
+                                     m_information.vendor_id == device_description.idVendor;
+        if (!is_required_vid)
+        {
+            continue;
+        }
+
+        const bool is_required_pid = m_information.product_id == 0x0000 ||
+                                     m_information.product_id == device_description.idProduct;
+        if (!is_required_pid)
+        {
             continue;
         }
 
