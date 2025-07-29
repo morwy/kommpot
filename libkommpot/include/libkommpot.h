@@ -172,7 +172,8 @@ enum class communication_type
 {
     UNKNOWN = 0,
     LIBUSB = 1,
-    LIBFTDI = 2
+    LIBFTDI = 2,
+    ETHERNET = 3
 };
 
 /**
@@ -215,7 +216,7 @@ struct communication_error
 /**
  * @brief describes any identification parameters of device.
  */
-struct device_identification
+struct usb_device_identification
 {
     /**
      * @category general identification parameters.
@@ -231,10 +232,24 @@ struct device_identification
     uint16_t product_id = 0x0000;
 
     /**
+     * @category USB identification parameters.
      * reliable for unique detection.
      */
     std::string port = "";
 };
+
+struct ethernet_device_identification
+{
+    /**
+     * @category IP identification parameters.
+     * @attention use 0.0.0.0 value as alternative to wildcard symbol.
+     */
+    std::string ip = "0.0.0.0";
+    uint16_t port = 0;
+};
+
+using device_identification =
+    std::variant<usb_device_identification, ethernet_device_identification>;
 
 class EXPORTED device_communication
 {

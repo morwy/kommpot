@@ -83,31 +83,40 @@ auto communication_libftdi::devices(
             continue;
         }
 
-        for (const auto &identification : identifications)
+        for (const auto &identification_variant : identifications)
         {
+            const auto *identification =
+                std::get_if<kommpot::usb_device_identification>(&identification_variant);
+            if (identification == nullptr)
+            {
+                SPDLOG_LOGGER_TRACE(
+                    KOMMPOT_LOGGER, "Provided identification is not USB, skipping.");
+                continue;
+            }
+
             /**
              * Filter device by VendorID.
              */
-            if (identification.vendor_id != 0x0000 &&
-                identification.vendor_id != device_description.idVendor)
+            if (identification->vendor_id != 0x0000 &&
+                identification->vendor_id != device_description.idVendor)
             {
                 SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
                     "Found device VID{}:PID{}, requested VID{}, skipping.",
                     device_description.idVendor, device_description.idProduct,
-                    identification.vendor_id);
+                    identification->vendor_id);
                 continue;
             }
 
             /**
              * Filter device by ProductID.
              */
-            if (identification.product_id != 0x0000 &&
-                identification.product_id != device_description.idProduct)
+            if (identification->product_id != 0x0000 &&
+                identification->product_id != device_description.idProduct)
             {
                 SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
                     "Found device VID{}:PID{}, requested PID{}, skipping.",
                     device_description.idVendor, device_description.idProduct,
-                    identification.product_id);
+                    identification->product_id);
                 continue;
             }
 
@@ -122,22 +131,22 @@ auto communication_libftdi::devices(
             /**
              * Filter device by serial number.
              */
-            if (!identification.serial_number.empty() &&
-                identification.serial_number != information.serial_number)
+            if (!identification->serial_number.empty() &&
+                identification->serial_number != information.serial_number)
             {
                 SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Found device {}, requested {}, skipping.",
-                    identification.serial_number, information.serial_number);
+                    identification->serial_number, information.serial_number);
                 continue;
             }
 
             /**
              * Filter device by port.
              */
-            if (!identification.port.empty() && identification.port != information.port)
+            if (!identification->port.empty() && identification->port != information.port)
             {
                 SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
-                    "Found device at port {}, requested at port {}, skipping.", identification.port,
-                    information.port);
+                    "Found device at port {}, requested at port {}, skipping.",
+                    identification->port, information.port);
                 continue;
             }
 

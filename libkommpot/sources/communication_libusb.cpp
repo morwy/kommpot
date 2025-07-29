@@ -65,7 +65,14 @@ auto communication_libusb::devices(
 
         const bool is_required_vid = std::any_of(identifications.begin(), identifications.end(),
             [&](const kommpot::device_identification &item) {
-                return item.vendor_id == 0x0000 || item.vendor_id == device_description.idVendor;
+                if (const auto *identification =
+                        std::get_if<kommpot::usb_device_identification>(&item))
+                {
+                    return identification->vendor_id == 0x0000 ||
+                           identification->vendor_id == device_description.idVendor;
+                }
+
+                return false;
             });
         if (!is_required_vid)
         {
@@ -74,7 +81,14 @@ auto communication_libusb::devices(
 
         const bool is_required_pid = std::any_of(identifications.begin(), identifications.end(),
             [&](const kommpot::device_identification &item) {
-                return item.product_id == 0x0000 || item.product_id == device_description.idProduct;
+                if (const auto *identification =
+                        std::get_if<kommpot::usb_device_identification>(&item))
+                {
+                    return identification->product_id == 0x0000 ||
+                           identification->product_id == device_description.idProduct;
+                }
+
+                return false;
             });
         if (!is_required_pid)
         {
@@ -101,27 +115,36 @@ auto communication_libusb::devices(
 
         libusb_close(device_handle);
 
-        for (const auto &identification : identifications)
+        for (const auto &identification_variant : identifications)
         {
+            const auto *identification =
+                std::get_if<kommpot::usb_device_identification>(&identification_variant);
+            if (identification == nullptr)
+            {
+                SPDLOG_LOGGER_TRACE(
+                    KOMMPOT_LOGGER, "Provided identification is not USB, skipping.");
+                continue;
+            }
+
             /**
              * Filter device by serial number.
              */
-            if (!identification.serial_number.empty() &&
-                identification.serial_number != information.serial_number)
+            if (!identification->serial_number.empty() &&
+                identification->serial_number != information.serial_number)
             {
                 SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Found device {}, requested {}, skipping.",
-                    identification.serial_number, information.serial_number);
+                    identification->serial_number, information.serial_number);
                 continue;
             }
 
             /**
              * Filter device by port.
              */
-            if (!identification.port.empty() && identification.port != information.port)
+            if (!identification->port.empty() && identification->port != information.port)
             {
                 SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
-                    "Found device at port {}, requested at port {}, skipping.", identification.port,
-                    information.port);
+                    "Found device at port {}, requested at port {}, skipping.",
+                    identification->port, information.port);
                 continue;
             }
 

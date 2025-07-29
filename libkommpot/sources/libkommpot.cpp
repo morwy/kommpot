@@ -1,5 +1,6 @@
 #include "libkommpot.h"
 
+#include <communication_ethernet.h>
 #include <communication_libusb.h>
 #include <kommpot_core.h>
 
@@ -91,6 +92,9 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     case communication_type::LIBFTDI: {
         return "libftdi";
     }
+    case communication_type::ETHERNET: {
+        return "ethernet";
+    }
     default:
         return "";
     }
@@ -116,6 +120,13 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
     auto libusb_devices = communication_libusb::devices(identifications);
     device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(libusb_devices)),
         std::make_move_iterator(std::end(libusb_devices)));
+
+    /**
+     * @brief ethernet devices.
+     */
+    auto ethernet_devices = communication_ethernet::devices(identifications);
+    device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(ethernet_devices)),
+        std::make_move_iterator(std::end(ethernet_devices)));
 
     return device_list;
 }
