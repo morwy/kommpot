@@ -32,6 +32,33 @@ struct ethernet_ipv4_address
         value.at(3) = static_cast<uint8_t>(input & 0xFF);
     }
 
+    ethernet_ipv4_address(const std::string &str)
+    {
+        size_t idx = 0;
+
+        std::string token;
+        std::istringstream iss(str);
+
+        while (std::getline(iss, token, '.') && idx < value.size())
+        {
+            try
+            {
+                int num = std::stoi(token);
+                if (num < 0 || num > 255)
+                {
+                    throw std::out_of_range("IPv4 segment out of range");
+                }
+
+                value.at(idx++) = static_cast<uint8_t>(num);
+            }
+            catch (...)
+            {
+                value.fill(0x00);
+                break;
+            }
+        }
+    }
+
     auto to_uint32() const -> const uint32_t
     {
         return (value[0] << 24) | (value[1] << 16) | (value[2] << 8) | value[3];
@@ -97,7 +124,7 @@ struct ethernet_interface_information
 class communication_ethernet : public kommpot::device_communication
 {
 public:
-    explicit communication_ethernet(const kommpot::communication_information &information);
+    explicit communication_ethernet(const kommpot::ethernet_device_identification &identification);
     ~communication_ethernet() override;
 
     static auto devices(const std::vector<kommpot::device_identification> &identifications)
@@ -120,14 +147,16 @@ public:
     [[nodiscard]] auto native_handle() const -> void * override;
 
 private:
+    kommpot::ethernet_device_identification m_identification;
+    int *m_socket_handle = nullptr;
     static constexpr uint32_t M_MAX_CONCURRENT_SEARCH_THREADS = 256;
     static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;
 
     [[nodiscard]] static auto get_all_interfaces()
         -> const std::vector<ethernet_interface_information>;
 
-    static auto is_alive(const ethernet_ipv4_address &ip, int port) -> bool;
-    static auto scan_network(const ethernet_interface_information &interface,
+    static auto is_host_reachable(const ethernet_ipv4_address &ip, int port) -> bool;
+    static auto scan_network_for_hosts(const ethernet_interface_information &interface,
         const kommpot::ethernet_device_identification &identification)
         -> const std::vector<std::shared_ptr<kommpot::device_communication>>;
 

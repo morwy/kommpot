@@ -194,19 +194,6 @@ struct communication_configuration
     uint8_t bit_mask = 0;
 };
 
-/**
- * @brief describes parameters of device communication.
- */
-struct communication_information
-{
-    std::string name = "";
-    std::string manufacturer = "";
-    std::string serial_number = "";
-    std::string port = "";
-    uint16_t vendor_id = 0x0000;
-    uint16_t product_id = 0x0000;
-};
-
 struct communication_error
 {
     uint32_t code = 0;
@@ -218,6 +205,12 @@ struct communication_error
  */
 struct usb_device_identification
 {
+    /**
+     * @category general identification parameters.
+     */
+    std::string name = "";
+    std::string manufacturer = "";
+
     /**
      * @category general identification parameters.
      * @warning unreliable for unique detection, some devices may have identical serial numbers.
@@ -241,6 +234,11 @@ struct usb_device_identification
 struct ethernet_device_identification
 {
     /**
+     * @category general identification parameters.
+     */
+    std::string name = "";
+
+    /**
      * @category IP identification parameters.
      * @attention use 0.0.0.0 value as alternative to wildcard symbol.
      */
@@ -254,7 +252,7 @@ using device_identification =
 class EXPORTED device_communication
 {
 public:
-    explicit device_communication(communication_information information);
+    explicit device_communication(device_identification identification);
     virtual ~device_communication() = default;
 
     /**
@@ -291,13 +289,13 @@ public:
     }
 
     /**
-     * @brief returns current device_communication object information.
-     * @return information as communication_information structure.
-     * {@link communication_information communication_information}
+     * @brief returns current device_communication object identification.
+     * @return identification as device_identification structure.
+     * {@link device_identification device_identification}
      */
-    [[nodiscard]] virtual auto information() const -> communication_information
+    [[nodiscard]] virtual auto identification() const -> device_identification
     {
-        return m_information;
+        return m_identification_variant;
     }
 
     /**
@@ -367,7 +365,7 @@ protected:
     bool m_is_custom_configuration_set = false;
     communication_configuration m_configuration;
     communication_type m_type = communication_type::UNKNOWN;
-    communication_information m_information;
+    device_identification m_identification_variant;
 };
 
 /**

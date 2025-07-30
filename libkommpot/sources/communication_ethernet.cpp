@@ -26,10 +26,11 @@
 #endif
 
 communication_ethernet::communication_ethernet(
-    const kommpot::communication_information &information)
-    : kommpot::device_communication(information)
+    const kommpot::ethernet_device_identification &identification)
+    : kommpot::device_communication(identification)
 {
     m_type = kommpot::communication_type::ETHERNET;
+    m_identification = identification;
 }
 
 communication_ethernet::~communication_ethernet()
@@ -60,20 +61,6 @@ auto communication_ethernet::devices(
         return {};
     }
 
-    int socket_handle = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socket_handle < 0)
-    {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "socket() failed with error {} [{}]", strerror(errno), errno);
-        return {};
-    }
-
-    if (!set_socket_timeout(socket_handle, M_TRANSFER_TIMEOUT_MSEC))
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "set_socket_timeout() failed");
-        return {};
-    }
-
     for (const auto &identification_variant : identifications)
     {
         for (const auto &interface : interfaces)
@@ -89,25 +76,36 @@ auto communication_ethernet::devices(
 
             if (identification->ip == "0.0.0.0")
             {
-                auto hosts = scan_network(interface, *identification);
+                auto hosts = scan_network_for_hosts(interface, *identification);
                 devices.insert(std::end(devices), std::make_move_iterator(std::begin(hosts)),
                     std::make_move_iterator(std::end(hosts)));
             }
             else
             {
-                sockaddr_in broadcast_address = {};
-                broadcast_address.sin_family = AF_INET;
-                broadcast_address.sin_port = htons(identification->port);
-                broadcast_address.sin_addr.s_addr = inet_addr(identification->ip.c_str());
+                if (is_host_reachable(identification->ip, identification->port))
+                {
+                    kommpot::ethernet_device_identification information;
+
+                    information.ip = identification->ip;
+                    information.port = identification->port;
+
+                    std::shared_ptr<kommpot::device_communication> host =
+                        std::make_shared<communication_ethernet>(information);
+                    if (!host)
+                    {
+                        SPDLOG_LOGGER_ERROR(
+                            KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
+                        continue;
+                    }
+
+                    devices.push_back(host);
+                }
             }
         }
     }
 
 #ifdef _WIN32
-    closesocket(socket_handle);
     WSACleanup();
-#else
-    close(socket_handle);
 #endif
 
     return devices;
@@ -318,7 +316,7 @@ auto communication_ethernet::get_all_interfaces()
     return interfaces;
 }
 
-auto communication_ethernet::is_alive(const ethernet_ipv4_address &ip, int port) -> bool
+auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, int port) -> bool
 {
     int socket_handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (socket_handle == INVALID_SOCKET)
@@ -364,7 +362,7 @@ auto communication_ethernet::is_alive(const ethernet_ipv4_address &ip, int port)
     return true;
 }
 
-auto communication_ethernet::scan_network(const ethernet_interface_information &interface,
+auto communication_ethernet::scan_network_for_hosts(const ethernet_interface_information &interface,
     const kommpot::ethernet_device_identification &identification)
     -> const std::vector<std::shared_ptr<kommpot::device_communication>>
 {
@@ -377,9 +375,12 @@ auto communication_ethernet::scan_network(const ethernet_interface_information &
         const auto host_ip = ethernet_ipv4_address(interface.ipv4_base_address.to_uint32() + i);
 
         threads.emplace_back([host_ip, identification, &mutex, &hosts]() {
-            if (is_alive(host_ip, identification.port))
+            if (is_host_reachable(host_ip, identification.port))
             {
-                kommpot::communication_information information;
+                kommpot::ethernet_device_identification information;
+
+                information.ip = host_ip.to_string();
+                information.port = identification.port;
 
                 std::shared_ptr<kommpot::device_communication> host =
                     std::make_shared<communication_ethernet>(information);

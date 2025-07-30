@@ -12,15 +12,16 @@
 #include <memory>
 #include <sstream>
 #include <string>
-#include <utility>
 #include <vector>
 
 ftdi_context *communication_libftdi::m_ftdi_context = nullptr;
 
-communication_libftdi::communication_libftdi(const kommpot::communication_information &information)
-    : kommpot::device_communication(information)
+communication_libftdi::communication_libftdi(
+    const kommpot::usb_device_identification &identification)
+    : kommpot::device_communication(identification)
 {
     m_type = kommpot::communication_type::LIBFTDI;
+    m_identification = identification;
 }
 
 communication_libftdi::~communication_libftdi()
@@ -120,7 +121,7 @@ auto communication_libftdi::devices(
                 continue;
             }
 
-            kommpot::communication_information information;
+            kommpot::usb_device_identification information;
             information.name = description.data();
             information.manufacturer = manufacturer.data();
             information.serial_number = serial_number.data();
@@ -202,7 +203,7 @@ auto communication_libftdi::open() -> bool
     }
 
     int result_code = ftdi_usb_open_desc(m_ftdi_context, communication_libftdi::VENDOR_ID,
-        m_information.product_id, nullptr, m_information.serial_number.c_str());
+        m_identification.product_id, nullptr, m_identification.serial_number.c_str());
     if (result_code < 0)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "ftdi_usb_open_desc() failed with error {} [{}]",

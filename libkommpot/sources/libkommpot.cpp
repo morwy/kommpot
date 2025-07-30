@@ -100,8 +100,8 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     }
 }
 
-kommpot::device_communication::device_communication(communication_information information)
-    : m_information(std::move(information))
+kommpot::device_communication::device_communication(kommpot::device_identification identification)
+    : m_identification_variant(std::move(identification))
 {}
 
 auto kommpot::device_communication::type() const -> kommpot::communication_type

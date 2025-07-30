@@ -15,10 +15,11 @@
 
 libusb_context *communication_libusb::m_libusb_context = nullptr;
 
-communication_libusb::communication_libusb(const kommpot::communication_information &information)
-    : kommpot::device_communication(information)
+communication_libusb::communication_libusb(const kommpot::usb_device_identification &identification)
+    : kommpot::device_communication(identification)
 {
     m_type = kommpot::communication_type::LIBUSB;
+    m_identification = identification;
 }
 
 communication_libusb::~communication_libusb()
@@ -104,7 +105,7 @@ auto communication_libusb::devices(
             continue;
         }
 
-        kommpot::communication_information information;
+        kommpot::usb_device_identification information;
         information.name = read_descriptor(device_handle, device_description.iProduct);
         information.manufacturer = read_descriptor(device_handle, device_description.iManufacturer);
         information.serial_number =
@@ -225,15 +226,15 @@ auto communication_libusb::open() -> bool
             continue;
         }
 
-        const bool is_required_vid = m_information.vendor_id == 0x0000 ||
-                                     m_information.vendor_id == device_description.idVendor;
+        const bool is_required_vid = m_identification.vendor_id == 0x0000 ||
+                                     m_identification.vendor_id == device_description.idVendor;
         if (!is_required_vid)
         {
             continue;
         }
 
-        const bool is_required_pid = m_information.product_id == 0x0000 ||
-                                     m_information.product_id == device_description.idProduct;
+        const bool is_required_pid = m_identification.product_id == 0x0000 ||
+                                     m_identification.product_id == device_description.idProduct;
         if (!is_required_pid)
         {
             continue;
@@ -248,7 +249,7 @@ auto communication_libusb::open() -> bool
             continue;
         }
 
-        if (m_information.port.empty())
+        if (m_identification.port.empty())
         {
             SPDLOG_LOGGER_ERROR(
                 KOMMPOT_LOGGER, "Device port is empty, cannot find the one to open.");
@@ -256,7 +257,7 @@ auto communication_libusb::open() -> bool
         }
 
         const std::string port = get_port_path(device_handle);
-        if (port != m_information.port)
+        if (port != m_identification.port)
         {
             libusb_close(device_handle);
             continue;
