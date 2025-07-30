@@ -82,13 +82,9 @@ auto communication_ethernet::devices(
             }
             else
             {
-                if (is_host_reachable(identification->ip, identification->port))
+                kommpot::ethernet_device_identification information;
+                if (is_host_reachable(identification->ip, identification->port, information))
                 {
-                    kommpot::ethernet_device_identification information;
-
-                    information.ip = identification->ip;
-                    information.port = identification->port;
-
                     std::shared_ptr<kommpot::device_communication> host =
                         std::make_shared<communication_ethernet>(information);
                     if (!host)
@@ -316,7 +312,8 @@ auto communication_ethernet::get_all_interfaces()
     return interfaces;
 }
 
-auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, int port) -> bool
+auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, const uint16_t port,
+    kommpot::ethernet_device_identification &information) -> bool
 {
     int socket_handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (socket_handle == INVALID_SOCKET)
@@ -325,17 +322,17 @@ auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, 
         return false;
     }
 
-    sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    inet_pton(AF_INET, ip.to_string().c_str(), &addr.sin_addr);
+    sockaddr_in address = {};
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+    inet_pton(AF_INET, ip.to_string().c_str(), &address.sin_addr);
 
     if (!set_socket_timeout(socket_handle, M_TRANSFER_TIMEOUT_MSEC))
     {
         return false;
     }
 
-    int result = connect(socket_handle, (sockaddr *)&addr, sizeof(addr));
+    int result = connect(socket_handle, (sockaddr *)&address, sizeof(address));
     if (result == SOCKET_ERROR)
     {
         result = closesocket(socket_handle);
@@ -343,13 +340,68 @@ auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, 
         {
             SPDLOG_LOGGER_TRACE(
                 KOMMPOT_LOGGER, "closesocket() failed with error {}", WSAGetLastError());
-            return false;
         }
 
         return false;
     }
 
-    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "connect() to {}:{} succeed", ip.to_string(), port);
+    /**
+     * @brief try reading out host MAC address.
+     */
+    IPAddr destIp;
+    if (InetPtonA(AF_INET, ip.to_string().c_str(), &destIp) != 1)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "InetPtonA() failed with error {}", WSAGetLastError());
+        closesocket(socket_handle);
+        return false;
+    }
+
+    BYTE mac_address_bytes[6] = {0};
+    ULONG mac_address_length = 6;
+
+    if (SendARP(destIp, 0, mac_address_bytes, &mac_address_length) != NO_ERROR)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "SendARP() failed with error {}", WSAGetLastError());
+        closesocket(socket_handle);
+        return false;
+    }
+
+    std::string mac_address = "";
+    for (ULONG i = 0; i < mac_address_length; ++i)
+    {
+        mac_address += fmt::format("{:02X}", mac_address_bytes[i]);
+        if (i < mac_address_length - 1)
+        {
+            mac_address += ":";
+        }
+    }
+
+    /**
+     * @brief try reading out hostname.
+     */
+    char host[NI_MAXHOST] = {0};
+    char service[NI_MAXSERV] = {0};
+
+    sockaddr_storage peer_address = {};
+    socklen_t address_length = sizeof(peer_address);
+    if (getpeername(socket_handle, (sockaddr *)&peer_address, &address_length) == 0)
+    {
+        result = getnameinfo((sockaddr *)&peer_address, address_length, host, sizeof(host), service,
+            sizeof(service), 0);
+        if (result != 0)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "getnameinfo() failed with error {} [{}]", result,
+                gai_strerror(result));
+        }
+    }
+
+    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "connect() to host {} ({}:{}, {}) succeed", host,
+        ip.to_string(), port, mac_address);
+
+    information.name = host;
+    information.ip = ip.to_string();
+    information.mac = mac_address;
+    information.port = port;
 
     result = closesocket(socket_handle);
     if (result == SOCKET_ERROR)
@@ -375,13 +427,9 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_interface_inf
         const auto host_ip = ethernet_ipv4_address(interface.ipv4_base_address.to_uint32() + i);
 
         threads.emplace_back([host_ip, identification, &mutex, &hosts]() {
-            if (is_host_reachable(host_ip, identification.port))
+            kommpot::ethernet_device_identification information;
+            if (is_host_reachable(host_ip, identification.port, information))
             {
-                kommpot::ethernet_device_identification information;
-
-                information.ip = host_ip.to_string();
-                information.port = identification.port;
-
                 std::shared_ptr<kommpot::device_communication> host =
                     std::make_shared<communication_ethernet>(information);
                 if (!host)

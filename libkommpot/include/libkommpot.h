@@ -243,6 +243,12 @@ struct ethernet_device_identification
      * @attention use 0.0.0.0 value as alternative to wildcard symbol.
      */
     std::string ip = "0.0.0.0";
+
+    /**
+     * @attention use 0:0:0:0:0:0 value as alternative to wildcard symbol.
+     */
+    std::string mac = "0:0:0:0:0:0";
+
     uint16_t port = 0;
 };
 

@@ -155,7 +155,8 @@ private:
     [[nodiscard]] static auto get_all_interfaces()
         -> const std::vector<ethernet_interface_information>;
 
-    static auto is_host_reachable(const ethernet_ipv4_address &ip, int port) -> bool;
+    static auto is_host_reachable(const ethernet_ipv4_address &ip, const uint16_t port,
+        kommpot::ethernet_device_identification &information) -> bool;
     static auto scan_network_for_hosts(const ethernet_interface_information &interface,
         const kommpot::ethernet_device_identification &identification)
         -> const std::vector<std::shared_ptr<kommpot::device_communication>>;
