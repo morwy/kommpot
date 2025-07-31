@@ -158,7 +158,7 @@ private:
     const uint16_t m_port;
 
     /**
-     * @attention socket() function returns different errors on Windows and other OSes.
+     * @attention socket() function returns different error on Windows and other OSes.
      */
 #ifdef _WIN32
     static constexpr uint64_t ETH_INVALID_SOCKET = ~0;

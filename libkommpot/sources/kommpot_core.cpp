@@ -1,4 +1,6 @@
-#include "kommpot_core.h"
+#include <kommpot_core.h>
+
+#include <ethernet_context.h>
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/callback_sink.h>
@@ -25,6 +27,8 @@ auto kommpot_core::initialize() -> bool
 
 auto kommpot_core::deinitialize() -> bool
 {
+    ethernet_context::instance().deinitialize();
+
     deinitialize_logger();
     return true;
 }

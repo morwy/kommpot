@@ -1,5 +1,6 @@
 #include <ethernet_socket.h>
 
+#include <ethernet_context.h>
 #include <kommpot_core.h>
 
 #ifdef _WIN32
@@ -25,6 +26,11 @@ ethernet_socket::ethernet_socket(const ethernet_ipv4_address &ip_address, const 
 {
     SPDLOG_LOGGER_TRACE(
         KOMMPOT_LOGGER, "Socket {} constructed object {}.", to_string(), static_cast<void *>(this));
+
+    if (!ethernet_context::instance().initialize())
+    {
+        return;
+    }
 
     /**
      * @todo add support for IPv6 protocol (AF_INET6).

@@ -1,5 +1,6 @@
 #include "communication_ethernet.h"
 
+#include "ethernet_context.h"
 #include "kommpot_core.h"
 #include "libkommpot.h"
 #include "third-party/spdlog/include/spdlog/spdlog.h"
@@ -45,15 +46,10 @@ auto communication_ethernet::devices(
 {
     std::vector<std::shared_ptr<kommpot::device_communication>> devices;
 
-#ifdef _WIN32
-    WSADATA wsa_data = {};
-    const int result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-    if (result != NO_ERROR)
+    if (!ethernet_context::instance().initialize())
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "WSAStartup() failed with error {}", result);
         return {};
     }
-#endif
 
     const auto interfaces = get_all_interfaces();
     if (interfaces.empty())
@@ -100,10 +96,6 @@ auto communication_ethernet::devices(
             }
         }
     }
-
-#ifdef _WIN32
-    WSACleanup();
-#endif
 
     return devices;
 }
