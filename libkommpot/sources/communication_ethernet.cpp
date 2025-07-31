@@ -28,6 +28,7 @@
 communication_ethernet::communication_ethernet(
     const kommpot::ethernet_device_identification &identification)
     : kommpot::device_communication(identification)
+    , m_socket(identification.ip, identification.port, ethernet_protocol_type::TCP)
 {
     m_type = kommpot::communication_type::ETHERNET;
     m_identification = identification;
@@ -109,15 +110,22 @@ auto communication_ethernet::devices(
 
 auto communication_ethernet::open() -> bool
 {
-    return false;
+    return m_socket.connect();
 }
 
 auto communication_ethernet::is_open() -> bool
 {
-    return false;
+    return m_socket.is_connected();
 }
 
-auto communication_ethernet::close() -> void {}
+auto communication_ethernet::close() -> void
+{
+    if (!m_socket.disconnect())
+    {
+        SPDLOG_LOGGER_ERROR(
+            KOMMPOT_LOGGER, "Socket {} failed to disconnect!", m_socket.to_string());
+    }
+}
 
 auto communication_ethernet::endpoints() -> std::vector<kommpot::endpoint_information>
 {

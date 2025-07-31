@@ -39,7 +39,7 @@ public:
 
 private:
     kommpot::ethernet_device_identification m_identification;
-    int *m_socket_handle = nullptr;
+    ethernet_socket m_socket;
     static constexpr uint32_t M_MAX_CONCURRENT_SEARCH_THREADS = 256;
     static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;
 
