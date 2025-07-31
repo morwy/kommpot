@@ -208,7 +208,7 @@ auto communication_ethernet::get_all_interfaces()
     for (IP_ADAPTER_ADDRESSES *adapter = addresses.get(); adapter != nullptr;
         adapter = adapter->Next)
     {
-        const auto friendy_name_str =
+        const auto friendly_name_str =
             std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(adapter->FriendlyName);
 
         /**
@@ -217,7 +217,7 @@ auto communication_ethernet::get_all_interfaces()
         if (adapter->IfType != IF_TYPE_ETHERNET_CSMACD)
         {
             SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Skipping non-Ethernet interface: {}", friendy_name_str);
+                KOMMPOT_LOGGER, "Skipping non-Ethernet interface: {}", friendly_name_str);
             continue;
         }
 
@@ -227,7 +227,7 @@ auto communication_ethernet::get_all_interfaces()
         if (adapter->OperStatus != IfOperStatusUp)
         {
             SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Skipping disconnected interface: {}", friendy_name_str);
+                KOMMPOT_LOGGER, "Skipping disconnected interface: {}", friendly_name_str);
             continue;
         }
 
@@ -250,7 +250,7 @@ auto communication_ethernet::get_all_interfaces()
         if (!ipv4_address)
         {
             SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Skipping interface without IPv4 address: {}", friendy_name_str);
+                KOMMPOT_LOGGER, "Skipping interface without IPv4 address: {}", friendly_name_str);
             continue;
         }
 
@@ -279,7 +279,7 @@ auto communication_ethernet::get_all_interfaces()
         if (!ipv4_gateway)
         {
             SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Skipping interface without IPv4 gateway: {}", friendy_name_str);
+                KOMMPOT_LOGGER, "Skipping interface without IPv4 gateway: {}", friendly_name_str);
             continue;
         }
 
@@ -315,99 +315,27 @@ auto communication_ethernet::get_all_interfaces()
 auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, const uint16_t port,
     kommpot::ethernet_device_identification &information) -> bool
 {
-    int socket_handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (socket_handle == INVALID_SOCKET)
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "socket() failed with error {}", WSAGetLastError());
-        return false;
-    }
+    auto socket = ethernet_socket(ip, port, ethernet_protocol_type::TCP);
 
-    sockaddr_in address = {};
-    address.sin_family = AF_INET;
-    address.sin_port = htons(port);
-    inet_pton(AF_INET, ip.to_string().c_str(), &address.sin_addr);
-
-    if (!set_socket_timeout(socket_handle, M_TRANSFER_TIMEOUT_MSEC))
+    if (!socket.set_timeout(M_TRANSFER_TIMEOUT_MSEC))
     {
         return false;
     }
 
-    int result = connect(socket_handle, (sockaddr *)&address, sizeof(address));
-    if (result == SOCKET_ERROR)
+    if (!socket.connect())
     {
-        result = closesocket(socket_handle);
-        if (result == SOCKET_ERROR)
-        {
-            SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "closesocket() failed with error {}", WSAGetLastError());
-        }
-
         return false;
     }
 
-    /**
-     * @brief try reading out host MAC address.
-     */
-    IPAddr destIp;
-    if (InetPtonA(AF_INET, ip.to_string().c_str(), &destIp) != 1)
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "InetPtonA() failed with error {}", WSAGetLastError());
-        closesocket(socket_handle);
-        return false;
-    }
+    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "connect() to host {} succeed", socket.to_string());
 
-    BYTE mac_address_bytes[6] = {0};
-    ULONG mac_address_length = 6;
-
-    if (SendARP(destIp, 0, mac_address_bytes, &mac_address_length) != NO_ERROR)
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "SendARP() failed with error {}", WSAGetLastError());
-        closesocket(socket_handle);
-        return false;
-    }
-
-    std::string mac_address = "";
-    for (ULONG i = 0; i < mac_address_length; ++i)
-    {
-        mac_address += fmt::format("{:02X}", mac_address_bytes[i]);
-        if (i < mac_address_length - 1)
-        {
-            mac_address += ":";
-        }
-    }
-
-    /**
-     * @brief try reading out hostname.
-     */
-    char host[NI_MAXHOST] = {0};
-    char service[NI_MAXSERV] = {0};
-
-    sockaddr_storage peer_address = {};
-    socklen_t address_length = sizeof(peer_address);
-    if (getpeername(socket_handle, (sockaddr *)&peer_address, &address_length) == 0)
-    {
-        result = getnameinfo((sockaddr *)&peer_address, address_length, host, sizeof(host), service,
-            sizeof(service), 0);
-        if (result != 0)
-        {
-            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "getnameinfo() failed with error {} [{}]", result,
-                gai_strerror(result));
-        }
-    }
-
-    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "connect() to host {} ({}:{}, {}) succeed", host,
-        ip.to_string(), port, mac_address);
-
-    information.name = host;
+    information.name = socket.hostname();
     information.ip = ip.to_string();
-    information.mac = mac_address;
+    information.mac = socket.mac_address().to_string();
     information.port = port;
 
-    result = closesocket(socket_handle);
-    if (result == SOCKET_ERROR)
+    if (!socket.disconnect())
     {
-        SPDLOG_LOGGER_TRACE(
-            KOMMPOT_LOGGER, "closesocket() failed with error {}", WSAGetLastError());
         return false;
     }
 
@@ -422,7 +350,7 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_interface_inf
     std::vector<std::thread> threads;
     std::vector<std::shared_ptr<kommpot::device_communication>> hosts;
 
-    for (int i = 1; i < interface.ipv4_max_hosts - 1; ++i)
+    for (uint32_t i = 1; i < interface.ipv4_max_hosts - 1; ++i)
     {
         const auto host_ip = ethernet_ipv4_address(interface.ipv4_base_address.to_uint32() + i);
 
@@ -461,34 +389,4 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_interface_inf
     }
 
     return hosts;
-}
-
-auto communication_ethernet::set_socket_timeout(int socket, const uint32_t &timeout_msecs) -> const
-    bool
-{
-    struct timeval timeout = {};
-
-    /**
-     * @todo here is difference between Windows and *nix OSes.
-     */
-    timeout.tv_sec = timeout_msecs / 1000;
-    timeout.tv_usec = (timeout_msecs % 1000) * 1000;
-
-    int result = setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
-    if (result != NO_ERROR)
-    {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "setsockopt(SO_RCVTIMEO) failed with error {}", WSAGetLastError());
-        return false;
-    }
-
-    result = setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
-    if (result != NO_ERROR)
-    {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "setsockopt(SO_SNDTIMEO) failed with error {}", WSAGetLastError());
-        return false;
-    }
-
-    return true;
 }
