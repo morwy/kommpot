@@ -4,9 +4,9 @@
 #pragma once
 
 #include <array>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
-#include <string.h>
 
 struct ethernet_ipv4_address
 {
