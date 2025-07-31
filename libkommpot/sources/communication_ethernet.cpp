@@ -157,6 +157,8 @@ auto communication_ethernet::native_handle() const -> void *
     return nullptr;
 }
 
+#ifdef _WIN32
+
 ethernet_ipv4_address to_ipv4_address(const SOCKADDR_IN *addr)
 {
     ethernet_ipv4_address address;
@@ -169,6 +171,12 @@ ethernet_ipv4_address to_ipv4_address(const SOCKADDR_IN *addr)
 
     return address;
 }
+
+#else
+
+
+
+#endif
 
 auto communication_ethernet::get_all_interfaces()
     -> const std::vector<ethernet_interface_information>
