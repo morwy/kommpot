@@ -142,6 +142,9 @@ public:
 
     [[nodiscard]] auto is_connected() const -> const bool;
 
+    [[nodiscard]] auto read(void *data, size_t size_bytes) const -> bool;
+    [[nodiscard]] auto write(void *data, size_t size_bytes) const -> bool;
+
     [[nodiscard]] auto set_timeout(const uint32_t &timeout_msecs) -> const bool;
 
     [[nodiscard]] auto hostname() const -> const std::string;
@@ -172,6 +175,8 @@ private:
     std::string m_hostname = "";
     ethernet_mac_address m_mac_address;
     bool m_is_connected = false;
+
+    auto close_socket() -> const bool;
 
     [[nodiscard]] auto read_out_hostname(std::string &hostname) -> const bool;
     [[nodiscard]] auto read_out_mac_address(ethernet_mac_address &mac_address) -> const bool;

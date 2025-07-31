@@ -137,13 +137,13 @@ auto communication_ethernet::endpoints() -> std::vector<kommpot::endpoint_inform
 auto communication_ethernet::read(
     const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes) -> bool
 {
-    return false;
+    return m_socket.read(data, size_bytes);
 }
 
 auto communication_ethernet::write(
     const kommpot::transfer_configuration &configuration, void *data, size_t size_bytes) -> bool
 {
-    return false;
+    return m_socket.write(data, size_bytes);
 }
 
 auto communication_ethernet::get_error_string(const uint32_t &native_error_code) const
@@ -173,8 +173,6 @@ ethernet_ipv4_address to_ipv4_address(const SOCKADDR_IN *addr)
 }
 
 #else
-
-
 
 #endif
 

@@ -76,20 +76,14 @@ auto ethernet_socket::connect() -> const bool
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to connect due to error: {}.",
             to_string(), get_last_error_code_as_string());
-
-        closesocket(m_handle);
-        m_handle = ETH_INVALID_SOCKET;
-
+        close_socket();
         return false;
     }
 
     if (!read_out_hostname(m_hostname))
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to read out hostname.", to_string());
-
-        closesocket(m_handle);
-        m_handle = ETH_INVALID_SOCKET;
-
+        close_socket();
         return false;
     }
 
@@ -97,10 +91,7 @@ auto ethernet_socket::connect() -> const bool
     {
         SPDLOG_LOGGER_ERROR(
             KOMMPOT_LOGGER, "Socket {} failed to read out MAC address.", to_string());
-
-        closesocket(m_handle);
-        m_handle = ETH_INVALID_SOCKET;
-
+        close_socket();
         return false;
     }
 
@@ -119,30 +110,77 @@ auto ethernet_socket::disconnect() -> const bool
         return true;
     }
 
-#ifdef _WIN32
-    const auto result = closesocket(m_handle);
-#else
-    const auto result = close(m_handle);
-#endif
-
-    if (result == ETH_SOCKET_ERROR)
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to disconnect due to error: {}.",
-            to_string(), get_last_error_code_as_string());
-        return false;
-    }
-
-    m_handle = ETH_INVALID_SOCKET;
-    m_is_connected = false;
-
-    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} disconnected successfully.", to_string());
-
-    return true;
+    return close_socket();
 }
 
 auto ethernet_socket::is_connected() const -> const bool
 {
     return m_handle != ETH_INVALID_SOCKET && m_is_connected;
+}
+
+auto ethernet_socket::read(void *data, size_t size_bytes) const -> bool
+{
+    if (!is_connected())
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not connected.", to_string());
+        return false;
+    }
+
+    if (data == nullptr)
+    {
+        SPDLOG_LOGGER_ERROR(
+            KOMMPOT_LOGGER, "Socket {} read() called with nullptr data pointer.", to_string());
+        return false;
+    }
+
+    if (size_bytes == 0)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} read() called with zero size.", to_string());
+        return false;
+    }
+
+    const auto bytes_received = recv(m_handle, static_cast<char *>(data), size_bytes, 0);
+    if (bytes_received == ETH_SOCKET_ERROR)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to read data due to error: {}.",
+            to_string(), get_last_error_code_as_string());
+        return false;
+    }
+
+    return true;
+}
+
+auto ethernet_socket::write(void *data, size_t size_bytes) const -> bool
+{
+    if (!is_connected())
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not connected.", to_string());
+        return false;
+    }
+
+    if (data == nullptr)
+    {
+        SPDLOG_LOGGER_ERROR(
+            KOMMPOT_LOGGER, "Socket {} write() called with nullptr data pointer.", to_string());
+        return false;
+    }
+
+    if (size_bytes == 0)
+    {
+        SPDLOG_LOGGER_ERROR(
+            KOMMPOT_LOGGER, "Socket {} write() called with zero size.", to_string());
+        return false;
+    }
+
+    const auto bytes_sent = send(m_handle, static_cast<const char *>(data), size_bytes, 0);
+    if (bytes_sent == ETH_SOCKET_ERROR)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to write data due to error: {}.",
+            to_string(), get_last_error_code_as_string());
+        return false;
+    }
+
+    return true;
 }
 
 auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
@@ -193,6 +231,32 @@ auto ethernet_socket::to_string() const -> const std::string
 {
     return fmt::format("{}:{} ({})", m_ip_address.to_string(), m_port,
         (m_protocol == ethernet_protocol_type::TCP) ? "TCP" : "UDP");
+}
+
+auto ethernet_socket::close_socket() -> const bool
+{
+    /**
+     * @attention please note the difference between Windows and *nix OSes here.
+     */
+#ifdef _WIN32
+    const auto result = closesocket(m_handle);
+#else
+    const auto result = close(m_handle);
+#endif
+
+    if (result == ETH_SOCKET_ERROR)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to disconnect due to error: {}.",
+            to_string(), get_last_error_code_as_string());
+        return false;
+    }
+
+    m_handle = ETH_INVALID_SOCKET;
+    m_is_connected = false;
+
+    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} disconnected successfully.", to_string());
+
+    return true;
 }
 
 auto ethernet_socket::read_out_hostname(std::string &hostname) -> const bool
