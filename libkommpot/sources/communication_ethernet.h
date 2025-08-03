@@ -12,6 +12,29 @@
 #include <string>
 #include <vector>
 
+struct ethernet_network_information
+{
+    std::shared_ptr<ethernet_ip_address> base_address = nullptr;
+    std::shared_ptr<ethernet_ip_address> address = nullptr;
+    std::shared_ptr<ethernet_ip_address> gateway = nullptr;
+    std::shared_ptr<ethernet_ip_address> mask = nullptr;
+    uint32_t mask_prefix = 0;
+    uint32_t max_hosts = 0;
+};
+
+struct ethernet_interface_information
+{
+    std::wstring interface_name = L"";
+    std::string adapter_name = "";
+    std::wstring description = L"";
+    std::wstring dns_suffix = L"";
+
+    ethernet_mac_address mac_address;
+
+    ethernet_network_information ipv4;
+    ethernet_network_information ipv6;
+};
+
 class communication_ethernet : public kommpot::device_communication
 {
 public:
@@ -46,9 +69,9 @@ private:
     [[nodiscard]] static auto get_all_interfaces()
         -> const std::vector<ethernet_interface_information>;
 
-    static auto is_host_reachable(const ethernet_ipv4_address &ip, const uint16_t port,
-        kommpot::ethernet_device_identification &information) -> bool;
-    static auto scan_network_for_hosts(const ethernet_interface_information &interface,
+    static auto is_host_reachable(const std::shared_ptr<ethernet_ip_address> ip_address,
+        const uint16_t port, kommpot::ethernet_device_identification &information) -> bool;
+    static auto scan_network_for_hosts(const ethernet_network_information &network,
         const kommpot::ethernet_device_identification &identification)
         -> const std::vector<std::shared_ptr<kommpot::device_communication>>;
 };

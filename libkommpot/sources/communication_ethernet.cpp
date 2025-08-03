@@ -1,15 +1,13 @@
 #include "communication_ethernet.h"
 
-#include "ethernet_context.h"
-#include "kommpot_core.h"
-#include "libkommpot.h"
-#include "third-party/spdlog/include/spdlog/spdlog.h"
+#include <ethernet_address_factory.h>
+#include <ethernet_context.h>
+#include <kommpot_core.h>
+#include <libkommpot.h>
+#include <third-party/spdlog/include/spdlog/spdlog.h>
 
 #include <codecvt>
-#include <cstddef>
-#include <cstdint>
 #include <memory>
-#include <string>
 #include <vector>
 
 #ifdef _WIN32
@@ -19,7 +17,16 @@
 #    include <iphlpapi.h>
 #    pragma comment(lib, "ws2_32.lib")
 #    pragma comment(lib, "iphlpapi.lib")
+
 // clang-format on
+
+/**
+ * @warning Windows API has a great define "interface".
+ */
+#    ifdef interface
+#        undef interface
+#    endif
+
 #else
 #    include <arpa/inet.h>
 #    include <sys/socket.h>
@@ -29,7 +36,6 @@
 communication_ethernet::communication_ethernet(
     const kommpot::ethernet_device_identification &identification)
     : kommpot::device_communication(identification)
-    , m_socket(identification.ip, identification.port, ethernet_protocol_type::TCP)
 {
     m_type = kommpot::communication_type::ETHERNET;
     m_identification = identification;
@@ -60,27 +66,35 @@ auto communication_ethernet::devices(
 
     for (const auto &identification_variant : identifications)
     {
+        const auto *identification =
+            std::get_if<kommpot::ethernet_device_identification>(&identification_variant);
+        if (identification == nullptr)
+        {
+            SPDLOG_LOGGER_TRACE(
+                KOMMPOT_LOGGER, "Provided identification is not Ethernet, skipping.");
+            continue;
+        }
+
         for (const auto &interface : interfaces)
         {
-            const auto *identification =
-                std::get_if<kommpot::ethernet_device_identification>(&identification_variant);
-            if (identification == nullptr)
+            if (identification->ip == "*")
             {
-                SPDLOG_LOGGER_TRACE(
-                    KOMMPOT_LOGGER, "Provided identification is not Ethernet, skipping.");
-                continue;
-            }
-
-            if (identification->ip == "0.0.0.0")
-            {
-                auto hosts = scan_network_for_hosts(interface, *identification);
+                auto hosts = scan_network_for_hosts(interface.ipv4, *identification);
                 devices.insert(std::end(devices), std::make_move_iterator(std::begin(hosts)),
                     std::make_move_iterator(std::end(hosts)));
             }
             else
             {
+                std::shared_ptr<ethernet_ip_address> ip_address = nullptr;
+                if (!ethernet_address_factory::from_string(identification->ip, ip_address))
+                {
+                    SPDLOG_LOGGER_ERROR(
+                        KOMMPOT_LOGGER, "Invalid IP address format: {}", identification->ip);
+                    continue;
+                }
+
                 kommpot::ethernet_device_identification information;
-                if (is_host_reachable(identification->ip, identification->port, information))
+                if (is_host_reachable(ip_address, identification->port, information))
                 {
                     std::shared_ptr<kommpot::device_communication> host =
                         std::make_shared<communication_ethernet>(information);
@@ -102,6 +116,22 @@ auto communication_ethernet::devices(
 
 auto communication_ethernet::open() -> bool
 {
+    std::shared_ptr<ethernet_ip_address> ip_address = nullptr;
+    if (!ethernet_address_factory::from_string(m_identification.ip, ip_address))
+    {
+        return false;
+    }
+
+    if (ip_address == nullptr)
+    {
+        return false;
+    }
+
+    if (!m_socket.initialize(ip_address, m_identification.port, m_identification.protocol))
+    {
+        return false;
+    }
+
     return m_socket.connect();
 }
 
@@ -122,6 +152,13 @@ auto communication_ethernet::close() -> void
 auto communication_ethernet::endpoints() -> std::vector<kommpot::endpoint_information>
 {
     std::vector<kommpot::endpoint_information> endpoints;
+
+    auto information = kommpot::endpoint_information();
+
+    information.address = m_identification.port;
+    information.type = kommpot::endpoint_type::DUPLEX;
+
+    endpoints.push_back(information);
 
     return endpoints;
 }
@@ -146,27 +183,13 @@ auto communication_ethernet::get_error_string(const uint32_t &native_error_code)
 
 auto communication_ethernet::native_handle() const -> void *
 {
-    return nullptr;
-}
-
-#ifdef _WIN32
-
-ethernet_ipv4_address to_ipv4_address(const SOCKADDR_IN *addr)
-{
-    ethernet_ipv4_address address;
-
-    const uint32_t ip = ntohl(addr->sin_addr.S_un.S_addr);
-    for (int i = 0; i < 4; ++i)
+    if (!m_socket.is_connected())
     {
-        address.value.at(3 - i) = (ip >> (8 * i)) & 0xFF;
+        return nullptr;
     }
 
-    return address;
+    return m_socket.native_handle();
 }
-
-#else
-
-#endif
 
 auto communication_ethernet::get_all_interfaces()
     -> const std::vector<ethernet_interface_information>
@@ -238,58 +261,6 @@ auto communication_ethernet::get_all_interfaces()
         }
 
         /**
-         * @brief get current IPv4 address.
-         */
-        SOCKADDR_IN *ipv4_address = nullptr;
-        auto *unicast = adapter->FirstUnicastAddress;
-        while (unicast)
-        {
-            if (unicast->Address.lpSockaddr->sa_family == AF_INET)
-            {
-                ipv4_address = (SOCKADDR_IN *)unicast->Address.lpSockaddr;
-                break;
-            }
-
-            unicast = unicast->Next;
-        }
-
-        if (!ipv4_address)
-        {
-            SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Skipping interface without IPv4 address: {}", friendly_name_str);
-            continue;
-        }
-
-        /**
-         * @brief get current IPv4 mask.
-         */
-        const uint8_t prefix_length = unicast->OnLinkPrefixLength;
-        const uint32_t mask = (prefix_length == 0) ? 0 : (~0u << (32 - prefix_length));
-
-        /**
-         * @brief get current IPv4 default gateway.
-         */
-        SOCKADDR_IN *ipv4_gateway = nullptr;
-        auto *gateway = adapter->FirstGatewayAddress;
-        while (gateway)
-        {
-            if (gateway->Address.lpSockaddr->sa_family == AF_INET)
-            {
-                ipv4_gateway = (SOCKADDR_IN *)gateway->Address.lpSockaddr;
-                break;
-            }
-
-            gateway = gateway->Next;
-        }
-
-        if (!ipv4_gateway)
-        {
-            SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Skipping interface without IPv4 gateway: {}", friendly_name_str);
-            continue;
-        }
-
-        /**
          * @brief fill in the information structure.
          */
         auto interface = ethernet_interface_information();
@@ -299,14 +270,109 @@ auto communication_ethernet::get_all_interfaces()
         interface.description = adapter->Description;
         interface.dns_suffix = adapter->DnsSuffix;
 
-        interface.ipv4_address = to_ipv4_address(ipv4_address);
-        interface.ipv4_gateway = to_ipv4_address(ipv4_gateway);
-        interface.ipv4_mask = ethernet_ipv4_address(mask);
-        interface.ipv4_mask_prefix = prefix_length;
-        interface.ipv4_base_address = ethernet_ipv4_address(
-            interface.ipv4_address.to_uint32() & interface.ipv4_mask.to_uint32());
-        interface.ipv4_max_hosts = 1 << (32 - prefix_length);
         interface.mac_address = ethernet_mac_address(adapter->PhysicalAddress);
+
+        auto parse_ipv4_information = [&adapter, &friendly_name_str](
+                                          ethernet_network_information &ipv4_network) -> bool {
+            /**
+             * @brief get current IPv4 address.
+             */
+            SOCKADDR_IN *ipv4_address = nullptr;
+            auto *unicast = adapter->FirstUnicastAddress;
+            while (unicast)
+            {
+                if (unicast->Address.lpSockaddr->sa_family == AF_INET)
+                {
+                    ipv4_address = (SOCKADDR_IN *)unicast->Address.lpSockaddr;
+                    break;
+                }
+
+                unicast = unicast->Next;
+            }
+
+            if (!ipv4_address)
+            {
+                SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Skipping interface without IPv4 address: {}",
+                    friendly_name_str);
+                return false;
+            }
+
+            /**
+             * @brief get current IPv4 mask.
+             */
+            const uint8_t prefix_length = unicast->OnLinkPrefixLength;
+            const uint32_t mask = (prefix_length == 0) ? 0 : (~0u << (32 - prefix_length));
+
+            /**
+             * @brief get current IPv4 default gateway.
+             */
+            SOCKADDR_IN *ipv4_gateway = nullptr;
+            auto *gateway = adapter->FirstGatewayAddress;
+            while (gateway)
+            {
+                if (gateway->Address.lpSockaddr->sa_family == AF_INET)
+                {
+                    ipv4_gateway = (SOCKADDR_IN *)gateway->Address.lpSockaddr;
+                    break;
+                }
+
+                gateway = gateway->Next;
+            }
+
+            if (!ipv4_gateway)
+            {
+                SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Skipping interface without IPv4 gateway: {}",
+                    friendly_name_str);
+                return false;
+            }
+
+            if (!ethernet_address_factory::from_sockaddr_in(
+                    (SOCKADDR *)ipv4_address, ipv4_network.address))
+            {
+                SPDLOG_LOGGER_ERROR(
+                    KOMMPOT_LOGGER, "Failed to create IP address from sockaddr_in.");
+                return false;
+            }
+
+            if (!ethernet_address_factory::from_sockaddr_in(
+                    (SOCKADDR *)ipv4_gateway, ipv4_network.gateway))
+            {
+                SPDLOG_LOGGER_ERROR(
+                    KOMMPOT_LOGGER, "Failed to create IP gateway from sockaddr_in.");
+                return false;
+            }
+
+            if (!ethernet_address_factory::from_uint32_t(mask, ipv4_network.mask))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create IP mask from uint32_t.");
+                return false;
+            }
+
+            ipv4_network.mask_prefix = prefix_length;
+
+            if (!ethernet_address_factory::calculate_base_address(
+                    ipv4_network.address, ipv4_network.mask, ipv4_network.base_address))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IP base address.");
+                return false;
+            }
+
+            if (!ethernet_address_factory::calculate_max_hosts(
+                    ipv4_network.address, ipv4_network.mask_prefix, ipv4_network.max_hosts))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate max hosts.");
+                return false;
+            }
+
+            return true;
+        };
+
+        if (!parse_ipv4_information(interface.ipv4))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Failed to parse IPv4 information for interface: {}", friendly_name_str);
+            continue;
+        }
 
         interfaces.push_back(interface);
     }
@@ -318,10 +384,16 @@ auto communication_ethernet::get_all_interfaces()
     return interfaces;
 }
 
-auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, const uint16_t port,
+auto communication_ethernet::is_host_reachable(
+    const std::shared_ptr<ethernet_ip_address> ip_address, const uint16_t port,
     kommpot::ethernet_device_identification &information) -> bool
 {
-    auto socket = ethernet_socket(ip, port, ethernet_protocol_type::TCP);
+    auto socket = ethernet_socket();
+
+    if (!socket.initialize(ip_address, port, kommpot::ethernet_protocol_type::TCP))
+    {
+        return false;
+    }
 
     if (!socket.set_timeout(M_TRANSFER_TIMEOUT_MSEC))
     {
@@ -336,7 +408,7 @@ auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, 
     SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "connect() to host {} succeed", socket.to_string());
 
     information.name = socket.hostname();
-    information.ip = ip.to_string();
+    information.ip = ip_address->to_string();
     information.mac = socket.mac_address().to_string();
     information.port = port;
 
@@ -348,7 +420,7 @@ auto communication_ethernet::is_host_reachable(const ethernet_ipv4_address &ip, 
     return true;
 }
 
-auto communication_ethernet::scan_network_for_hosts(const ethernet_interface_information &interface,
+auto communication_ethernet::scan_network_for_hosts(const ethernet_network_information &network,
     const kommpot::ethernet_device_identification &identification)
     -> const std::vector<std::shared_ptr<kommpot::device_communication>>
 {
@@ -356,13 +428,17 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_interface_inf
     std::vector<std::thread> threads;
     std::vector<std::shared_ptr<kommpot::device_communication>> hosts;
 
-    for (uint32_t i = 1; i < interface.ipv4_max_hosts - 1; ++i)
+    for (uint32_t i = 1; i < network.max_hosts - 1; ++i)
     {
-        const auto host_ip = ethernet_ipv4_address(interface.ipv4_base_address.to_uint32() + i);
+        std::shared_ptr<ethernet_ip_address> new_address = nullptr;
+        if (!ethernet_address_factory::calculate_new_address(network.base_address, i, new_address))
+        {
+            continue;
+        }
 
-        threads.emplace_back([host_ip, identification, &mutex, &hosts]() {
+        threads.emplace_back([new_address, identification, &mutex, &hosts]() {
             kommpot::ethernet_device_identification information;
-            if (is_host_reachable(host_ip, identification.port, information))
+            if (is_host_reachable(new_address, identification.port, information))
             {
                 std::shared_ptr<kommpot::device_communication> host =
                     std::make_shared<communication_ethernet>(information);

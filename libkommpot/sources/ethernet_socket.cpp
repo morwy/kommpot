@@ -18,47 +18,65 @@
 #    include <unistd.h>
 #endif
 
-ethernet_socket::ethernet_socket(const ethernet_ipv4_address &ip_address, const uint16_t &port,
-    const ethernet_protocol_type &protocol)
-    : m_protocol(protocol)
-    , m_ip_address(ip_address)
-    , m_port(port)
+ethernet_socket::ethernet_socket()
 {
-    SPDLOG_LOGGER_TRACE(
-        KOMMPOT_LOGGER, "Socket {} constructed object {}.", to_string(), static_cast<void *>(this));
-
-    if (!ethernet_context::instance().initialize())
-    {
-        return;
-    }
-
-    /**
-     * @todo add support for IPv6 protocol (AF_INET6).
-     */
-    m_handle =
-        socket(AF_INET, (m_protocol == ethernet_protocol_type::TCP) ? SOCK_STREAM : SOCK_DGRAM,
-            (m_protocol == ethernet_protocol_type::TCP) ? IPPROTO_TCP : IPPROTO_UDP);
-    if (m_handle == ETH_INVALID_SOCKET)
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not created due to error: {}.",
-            to_string(), get_last_error_code_as_string());
-    }
+    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket constructed object {}.", static_cast<void *>(this));
 }
 
 ethernet_socket::~ethernet_socket()
 {
-    if (!is_connected())
+    if (is_connected())
     {
-        return;
-    }
-
-    if (!disconnect())
-    {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to disconnect!", to_string());
+        if (!disconnect())
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to disconnect!", to_string());
+        }
     }
 
     SPDLOG_LOGGER_TRACE(
         KOMMPOT_LOGGER, "Socket {} destructed object {}.", to_string(), static_cast<void *>(this));
+}
+
+auto ethernet_socket::initialize(const std::shared_ptr<ethernet_ip_address> ip_address,
+    const uint16_t &port, const kommpot::ethernet_protocol_type &protocol) -> const bool
+{
+    if (!ethernet_context::instance().initialize())
+    {
+        return false;
+    }
+
+    m_protocol = protocol;
+    m_ip_address = ip_address;
+    m_port = port;
+
+    if (dynamic_cast<ethernet_ipv4_address *>(m_ip_address.get()))
+    {
+        m_ip_family = AF_INET;
+    }
+    else if (dynamic_cast<ethernet_ipv6_address *>(m_ip_address.get()))
+    {
+        m_ip_family = AF_INET6;
+    }
+    else
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Provided IP address is not IPv4 or IPv6.");
+        return false;
+    }
+
+    /**
+     * @todo add support for more protocols.
+     */
+    m_handle = socket(m_ip_family,
+        (m_protocol == kommpot::ethernet_protocol_type::TCP) ? SOCK_STREAM : SOCK_DGRAM,
+        (m_protocol == kommpot::ethernet_protocol_type::TCP) ? IPPROTO_TCP : IPPROTO_UDP);
+    if (m_handle == ETH_INVALID_SOCKET)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not created due to error: {}.",
+            to_string(), get_last_error_code_as_string());
+        return false;
+    }
+
+    return true;
 }
 
 auto ethernet_socket::connect() -> const bool
@@ -69,13 +87,10 @@ auto ethernet_socket::connect() -> const bool
         return true;
     }
 
-    /**
-     * @todo add support for IPv6 protocol (AF_INET6).
-     */
     sockaddr_in address = {};
-    address.sin_family = AF_INET;
+    address.sin_family = m_ip_family;
     address.sin_port = htons(m_port);
-    inet_pton(AF_INET, m_ip_address.to_string().c_str(), &address.sin_addr);
+    inet_pton(m_ip_family, m_ip_address->to_string().c_str(), &address.sin_addr);
 
     const auto result = ::connect(m_handle, (sockaddr *)&address, sizeof(address));
     if (result == ETH_SOCKET_ERROR)
@@ -124,7 +139,7 @@ auto ethernet_socket::is_connected() const -> const bool
     return m_handle != ETH_INVALID_SOCKET && m_is_connected;
 }
 
-auto ethernet_socket::read(void *data, size_t size_bytes) const -> bool
+auto ethernet_socket::read(void *data, size_t size_bytes) const -> const bool
 {
     if (!is_connected())
     {
@@ -156,7 +171,7 @@ auto ethernet_socket::read(void *data, size_t size_bytes) const -> bool
     return true;
 }
 
-auto ethernet_socket::write(void *data, size_t size_bytes) const -> bool
+auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
 {
     if (!is_connected())
     {
@@ -233,10 +248,15 @@ auto ethernet_socket::mac_address() const -> const ethernet_mac_address
     return m_mac_address;
 }
 
+auto ethernet_socket::native_handle() const -> void *
+{
+    return reinterpret_cast<void *>(m_handle);
+}
+
 auto ethernet_socket::to_string() const -> const std::string
 {
-    return fmt::format("{}:{} ({})", m_ip_address.to_string(), m_port,
-        (m_protocol == ethernet_protocol_type::TCP) ? "TCP" : "UDP");
+    return fmt::format("{}:{} ({})", m_ip_address ? m_ip_address->to_string() : "NULL", m_port,
+        (m_protocol == kommpot::ethernet_protocol_type::TCP) ? "TCP" : "UDP");
 }
 
 auto ethernet_socket::close_socket() -> const bool
@@ -304,10 +324,7 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
 
     IPAddr connected_ip_address = {};
 
-    /**
-     * @todo add support for IPv6 protocol (AF_INET6).
-     */
-    int result = InetPton(AF_INET, m_ip_address.to_string().c_str(), &connected_ip_address);
+    int result = InetPton(m_ip_family, m_ip_address->to_string().c_str(), &connected_ip_address);
     if (result != 1)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} InetPton() failed with error: {}.",

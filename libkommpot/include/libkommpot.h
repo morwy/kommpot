@@ -128,7 +128,8 @@ enum class endpoint_type : uint8_t
 {
     UNKNOWN = 0,
     INPUT = 1,
-    OUTPUT = 2
+    OUTPUT = 2,
+    DUPLEX = 3
 };
 
 /**
@@ -231,6 +232,13 @@ struct usb_device_identification
     std::string port = "";
 };
 
+enum class ethernet_protocol_type
+{
+    UNKNOWN = 0,
+    TCP = 1,
+    UDP = 2,
+};
+
 struct ethernet_device_identification
 {
     /**
@@ -238,16 +246,18 @@ struct ethernet_device_identification
      */
     std::string name = "";
 
-    /**
-     * @category IP identification parameters.
-     * @attention use 0.0.0.0 value as alternative to wildcard symbol.
-     */
-    std::string ip = "0.0.0.0";
+    ethernet_protocol_type protocol = ethernet_protocol_type::UNKNOWN;
 
     /**
-     * @attention use 0:0:0:0:0:0 value as alternative to wildcard symbol.
+     * @category IP identification parameters.
+     * @attention wildcards are supported.
      */
-    std::string mac = "0:0:0:0:0:0";
+    std::string ip = "*";
+
+    /**
+     * @attention wildcards are supported.
+     */
+    std::string mac = "*";
 
     uint16_t port = 0;
 };
