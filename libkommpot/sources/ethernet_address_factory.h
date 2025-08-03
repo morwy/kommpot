@@ -5,6 +5,8 @@
 
 #include <ethernet_address.h>
 
+#include <memory>
+
 #ifdef _WIN32
 // clang-format off
 #    include <ws2tcpip.h>

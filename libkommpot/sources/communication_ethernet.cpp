@@ -367,10 +367,29 @@ auto communication_ethernet::get_all_interfaces()
             return true;
         };
 
-        if (!parse_ipv4_information(interface.ipv4))
+        auto parse_ipv6_information = [&adapter, &friendly_name_str](
+                                          ethernet_network_information &ipv4_network) -> bool {
+            return true;
+        };
+
+        const bool is_ipv4_valid = parse_ipv4_information(interface.ipv4);
+        if (!is_ipv4_valid)
         {
-            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-                "Failed to parse IPv4 information for interface: {}", friendly_name_str);
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to parse IPv4 information for interface: {}",
+                friendly_name_str);
+        }
+
+        const bool is_ipv6_valid = parse_ipv6_information(interface.ipv4);
+        if (!is_ipv6_valid)
+        {
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to parse IPv6 information for interface: {}",
+                friendly_name_str);
+        }
+
+        if (!is_ipv4_valid || !is_ipv6_valid)
+        {
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER,
+                "Skipping interface due to invalid IP information: {}", friendly_name_str);
             continue;
         }
 
