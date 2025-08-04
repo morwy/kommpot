@@ -250,10 +250,9 @@ struct ethernet_device_identification
 {
     /**
      * @category general identification parameters.
+     * @attention wildcards are supported.
      */
-    std::string name = "";
-
-    ethernet_protocol_type protocol = ethernet_protocol_type::UNKNOWN;
+    std::string name = "*";
 
     /**
      * @category IP identification parameters.
@@ -266,6 +265,7 @@ struct ethernet_device_identification
      */
     std::string mac = "*";
 
+    ethernet_protocol_type protocol = ethernet_protocol_type::UNKNOWN;
     uint16_t port = 0;
 };
 

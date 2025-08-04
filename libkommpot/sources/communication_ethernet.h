@@ -71,9 +71,13 @@ private:
 
     static auto is_host_reachable(const std::shared_ptr<ethernet_ip_address> ip_address,
         const uint16_t port, kommpot::ethernet_device_identification &information) -> bool;
+    static auto is_host_suitable(const kommpot::ethernet_device_identification &search_id,
+        const kommpot::ethernet_device_identification &host_id) -> bool;
     static auto scan_network_for_hosts(const ethernet_network_information &network,
         const kommpot::ethernet_device_identification &identification)
         -> const std::vector<std::shared_ptr<kommpot::device_communication>>;
+
+    static auto is_wildcard_match(const std::string &pattern, const std::string &value) -> bool;
 };
 
 #endif // COMMUNICATION_ETHERNET_H

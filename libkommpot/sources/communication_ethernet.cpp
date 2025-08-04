@@ -93,20 +93,29 @@ auto communication_ethernet::devices(
                     continue;
                 }
 
-                kommpot::ethernet_device_identification information;
-                if (is_host_reachable(ip_address, identification->port, information))
+                kommpot::ethernet_device_identification host_id;
+                if (!is_host_reachable(ip_address, identification->port, host_id))
                 {
-                    std::shared_ptr<kommpot::device_communication> host =
-                        std::make_shared<communication_ethernet>(information);
-                    if (!host)
-                    {
-                        SPDLOG_LOGGER_ERROR(
-                            KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
-                        continue;
-                    }
-
-                    devices.push_back(host);
+                    SPDLOG_LOGGER_TRACE(
+                        KOMMPOT_LOGGER, "Host {} is not reachable.", ip_address->to_string());
+                    continue;
                 }
+
+                std::shared_ptr<kommpot::device_communication> host =
+                    std::make_shared<communication_ethernet>(host_id);
+                if (host == nullptr)
+                {
+                    SPDLOG_LOGGER_ERROR(
+                        KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
+                    continue;
+                }
+
+                if (!is_host_suitable(*identification, host_id))
+                {
+                    continue;
+                }
+
+                devices.push_back(host);
             }
         }
     }
@@ -473,6 +482,50 @@ auto communication_ethernet::is_host_reachable(
     return true;
 }
 
+auto communication_ethernet::is_host_suitable(
+    const kommpot::ethernet_device_identification &search_id,
+    const kommpot::ethernet_device_identification &host_id) -> bool
+{
+    /**
+     * @attention port and protocol is covered by is_host_reachable().
+     */
+
+    /**
+     * Check name.
+     */
+    const bool is_name_match = is_wildcard_match(search_id.name, host_id.name);
+    if (!is_name_match)
+    {
+        SPDLOG_LOGGER_TRACE(
+            KOMMPOT_LOGGER, "Host {} does not match search name {}", host_id.name, search_id.name);
+        return false;
+    }
+
+    /**
+     * Check IP address.
+     */
+    const bool is_ip_match = is_wildcard_match(search_id.ip, host_id.ip);
+    if (!is_ip_match)
+    {
+        SPDLOG_LOGGER_TRACE(
+            KOMMPOT_LOGGER, "Host {} does not match search IP {}", host_id.ip, search_id.ip);
+        return false;
+    }
+
+    /**
+     * Check MAC address.
+     */
+    const bool is_mac_match = is_wildcard_match(search_id.mac, host_id.mac);
+    if (!is_mac_match)
+    {
+        SPDLOG_LOGGER_TRACE(
+            KOMMPOT_LOGGER, "Host {} does not match search MAC {}", host_id.mac, search_id.mac);
+        return false;
+    }
+
+    return true;
+}
+
 auto communication_ethernet::scan_network_for_hosts(const ethernet_network_information &network,
     const kommpot::ethernet_device_identification &identification)
     -> const std::vector<std::shared_ptr<kommpot::device_communication>>
@@ -490,21 +543,28 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
         }
 
         threads.emplace_back([new_address, identification, &mutex, &hosts]() {
-            kommpot::ethernet_device_identification information;
-            if (is_host_reachable(new_address, identification.port, information))
+            kommpot::ethernet_device_identification host_id;
+            if (!is_host_reachable(new_address, identification.port, host_id))
             {
-                std::shared_ptr<kommpot::device_communication> host =
-                    std::make_shared<communication_ethernet>(information);
-                if (!host)
-                {
-                    SPDLOG_LOGGER_ERROR(
-                        KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
-                    return;
-                }
-
-                std::lock_guard<std::mutex> lock(mutex);
-                hosts.push_back(host);
+                return;
             }
+
+            if (!is_host_suitable(identification, host_id))
+            {
+                return;
+            }
+
+            std::shared_ptr<kommpot::device_communication> host =
+                std::make_shared<communication_ethernet>(host_id);
+            if (!host)
+            {
+                SPDLOG_LOGGER_ERROR(
+                    KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
+                return;
+            }
+
+            std::lock_guard<std::mutex> lock(mutex);
+            hosts.push_back(host);
         });
 
         if (threads.size() >= M_MAX_CONCURRENT_SEARCH_THREADS)
@@ -524,4 +584,60 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
     }
 
     return hosts;
+}
+
+/**
+ * @author Jack Handy (jakkhandy@hotmail.com)
+ * @link https://www.codeproject.com/Articles/1088/Wildcard-string-compare-globbing-
+ */
+auto communication_ethernet::is_wildcard_match(const std::string &pattern, const std::string &value)
+    -> bool
+{
+    const char *pattern_ptr = pattern.c_str();
+    const char *value_ptr = value.c_str();
+
+    const char *cp = nullptr;
+    const char *mp = nullptr;
+
+    while ((*value_ptr) && (*pattern_ptr != '*'))
+    {
+        if ((*pattern_ptr != *value_ptr) && (*pattern_ptr != '?'))
+        {
+            return false;
+        }
+
+        pattern_ptr++;
+        value_ptr++;
+    }
+
+    while (*value_ptr)
+    {
+        if (*pattern_ptr == '*')
+        {
+            if (!*++pattern_ptr)
+            {
+                return true;
+            }
+
+            mp = pattern_ptr;
+            cp = value_ptr + 1;
+        }
+        else if ((*pattern_ptr == *value_ptr) || (*pattern_ptr == '?'))
+        {
+            pattern_ptr++;
+            value_ptr++;
+        }
+        else
+        {
+            pattern_ptr = mp;
+            value_ptr = cp++;
+        }
+    }
+
+    while (*pattern_ptr == '*')
+    {
+        pattern_ptr++;
+    }
+
+    return !*pattern_ptr;
 }
