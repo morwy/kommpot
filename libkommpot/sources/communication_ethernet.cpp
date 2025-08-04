@@ -272,124 +272,158 @@ auto communication_ethernet::get_all_interfaces()
 
         interface.mac_address = ethernet_mac_address(adapter->PhysicalAddress);
 
-        auto parse_ipv4_information = [&adapter, &friendly_name_str](
-                                          ethernet_network_information &ipv4_network) -> bool {
-            /**
-             * @brief get current IPv4 address.
-             */
-            SOCKADDR_IN *ipv4_address = nullptr;
-            auto *unicast = adapter->FirstUnicastAddress;
-            while (unicast)
-            {
-                if (unicast->Address.lpSockaddr->sa_family == AF_INET)
-                {
-                    ipv4_address = (SOCKADDR_IN *)unicast->Address.lpSockaddr;
-                    break;
-                }
+        /**
+         * @brief get current IP addresses.
+         */
+        SOCKADDR_IN *ipv4_address = nullptr;
+        SOCKADDR_IN *ipv6_address = nullptr;
 
-                unicast = unicast->Next;
-            }
+        uint8_t ipv4_prefix_length = 0;
+        uint8_t ipv6_prefix_length = 0;
 
-            if (!ipv4_address)
-            {
-                SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Skipping interface without IPv4 address: {}",
-                    friendly_name_str);
-                return false;
-            }
-
-            /**
-             * @brief get current IPv4 mask.
-             */
-            const uint8_t prefix_length = unicast->OnLinkPrefixLength;
-            const uint32_t mask = (prefix_length == 0) ? 0 : (~0u << (32 - prefix_length));
-
-            /**
-             * @brief get current IPv4 default gateway.
-             */
-            SOCKADDR_IN *ipv4_gateway = nullptr;
-            auto *gateway = adapter->FirstGatewayAddress;
-            while (gateway)
-            {
-                if (gateway->Address.lpSockaddr->sa_family == AF_INET)
-                {
-                    ipv4_gateway = (SOCKADDR_IN *)gateway->Address.lpSockaddr;
-                    break;
-                }
-
-                gateway = gateway->Next;
-            }
-
-            if (!ipv4_gateway)
-            {
-                SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Skipping interface without IPv4 gateway: {}",
-                    friendly_name_str);
-                return false;
-            }
-
-            if (!ethernet_address_factory::from_sockaddr_in(
-                    (SOCKADDR *)ipv4_address, ipv4_network.address))
-            {
-                SPDLOG_LOGGER_ERROR(
-                    KOMMPOT_LOGGER, "Failed to create IP address from sockaddr_in.");
-                return false;
-            }
-
-            if (!ethernet_address_factory::from_sockaddr_in(
-                    (SOCKADDR *)ipv4_gateway, ipv4_network.gateway))
-            {
-                SPDLOG_LOGGER_ERROR(
-                    KOMMPOT_LOGGER, "Failed to create IP gateway from sockaddr_in.");
-                return false;
-            }
-
-            if (!ethernet_address_factory::from_uint32_t(mask, ipv4_network.mask))
-            {
-                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create IP mask from uint32_t.");
-                return false;
-            }
-
-            ipv4_network.mask_prefix = prefix_length;
-
-            if (!ethernet_address_factory::calculate_base_address(
-                    ipv4_network.address, ipv4_network.mask, ipv4_network.base_address))
-            {
-                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IP base address.");
-                return false;
-            }
-
-            if (!ethernet_address_factory::calculate_max_hosts(
-                    ipv4_network.address, ipv4_network.mask_prefix, ipv4_network.max_hosts))
-            {
-                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate max hosts.");
-                return false;
-            }
-
-            return true;
-        };
-
-        auto parse_ipv6_information = [&adapter, &friendly_name_str](
-                                          ethernet_network_information &ipv4_network) -> bool {
-            return true;
-        };
-
-        const bool is_ipv4_valid = parse_ipv4_information(interface.ipv4);
-        if (!is_ipv4_valid)
+        auto *unicast = adapter->FirstUnicastAddress;
+        while (unicast)
         {
-            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to parse IPv4 information for interface: {}",
-                friendly_name_str);
+            if (ipv4_address == nullptr && unicast->Address.lpSockaddr->sa_family == AF_INET)
+            {
+                ipv4_address = (SOCKADDR_IN *)unicast->Address.lpSockaddr;
+                ipv4_prefix_length = unicast->OnLinkPrefixLength;
+            }
+
+            if (ipv6_address == nullptr && unicast->Address.lpSockaddr->sa_family == AF_INET6)
+            {
+                ipv6_address = (SOCKADDR_IN *)unicast->Address.lpSockaddr;
+                ipv6_prefix_length = unicast->OnLinkPrefixLength;
+            }
+
+            unicast = unicast->Next;
         }
 
-        const bool is_ipv6_valid = parse_ipv6_information(interface.ipv4);
-        if (!is_ipv6_valid)
+        if (ipv4_address == nullptr && ipv6_address == nullptr)
         {
-            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to parse IPv6 information for interface: {}",
-                friendly_name_str);
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
+                "Skipping interface without IPv4 and IPv6 address: {}", friendly_name_str);
+            continue;
         }
 
-        if (!is_ipv4_valid || !is_ipv6_valid)
+        bool is_valid_ipv4 = ethernet_address_factory::from_sockaddr_in(
+            (SOCKADDR *)ipv4_address, interface.ipv4.address);
+        if (!is_valid_ipv4)
         {
-            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER,
-                "Skipping interface due to invalid IP information: {}", friendly_name_str);
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv4 address from sockaddr_in.");
+        }
+
+        bool is_valid_ipv6 = ethernet_address_factory::from_sockaddr_in(
+            (SOCKADDR *)ipv6_address, interface.ipv6.address);
+        if (!is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv6 address from sockaddr_in.");
+        }
+
+        if (!is_valid_ipv4 && !is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Failed to create both IPv4 and IPv6 addresses from sockaddr_in: {}",
+                friendly_name_str);
+            continue;
+        }
+
+        /**
+         * @brief get current IPv4 default gateway.
+         */
+        SOCKADDR_IN *ipv4_gateway = nullptr;
+        SOCKADDR_IN *ipv6_gateway = nullptr;
+
+        auto *gateway = adapter->FirstGatewayAddress;
+        while (gateway)
+        {
+            if (ipv4_gateway == nullptr && gateway->Address.lpSockaddr->sa_family == AF_INET)
+            {
+                ipv4_gateway = (SOCKADDR_IN *)gateway->Address.lpSockaddr;
+            }
+
+            if (ipv6_gateway == nullptr && gateway->Address.lpSockaddr->sa_family == AF_INET6)
+            {
+                ipv6_gateway = (SOCKADDR_IN *)gateway->Address.lpSockaddr;
+            }
+
+            gateway = gateway->Next;
+        }
+
+        if (ipv4_gateway == nullptr && ipv6_gateway == nullptr)
+        {
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER,
+                "Skipping interface without IPv4 and IPv6 gateway: {}", friendly_name_str);
+            continue;
+        }
+
+        is_valid_ipv4 = ethernet_address_factory::from_sockaddr_in(
+            (SOCKADDR *)ipv4_gateway, interface.ipv4.gateway);
+        if (!is_valid_ipv4)
+        {
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv4 gateway from sockaddr_in.");
+        }
+
+        is_valid_ipv6 = ethernet_address_factory::from_sockaddr_in(
+            (SOCKADDR *)ipv6_gateway, interface.ipv6.gateway);
+        if (!is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv6 gateway from sockaddr_in.");
+        }
+
+        if (!is_valid_ipv4 && !is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Failed to create both IPv4 and IPv6 gateways from sockaddr_in: {}",
+                friendly_name_str);
+            continue;
+        }
+
+        /**
+         * @brief get current IP mask.
+         */
+        interface.ipv4.mask_prefix = ipv4_prefix_length;
+        interface.ipv6.mask_prefix = ipv6_prefix_length;
+
+        if (!ethernet_address_factory::calculate_mask(
+                interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.mask))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 mask.");
+            continue;
+        }
+
+        if (!ethernet_address_factory::calculate_mask(
+                interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.mask))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 mask.");
+            continue;
+        }
+
+        if (!ethernet_address_factory::calculate_base_address(
+                interface.ipv4.address, interface.ipv4.mask, interface.ipv4.base_address))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 base address.");
+            continue;
+        }
+
+        if (!ethernet_address_factory::calculate_base_address(
+                interface.ipv6.address, interface.ipv6.mask, interface.ipv6.base_address))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 base address.");
+            continue;
+        }
+
+        if (!ethernet_address_factory::calculate_max_hosts(
+                interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.max_hosts))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 max hosts.");
+            continue;
+        }
+
+        if (!ethernet_address_factory::calculate_max_hosts(
+                interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.max_hosts))
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 max hosts.");
             continue;
         }
 
