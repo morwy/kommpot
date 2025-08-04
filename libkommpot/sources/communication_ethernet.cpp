@@ -151,10 +151,13 @@ auto communication_ethernet::is_open() -> bool
 
 auto communication_ethernet::close() -> void
 {
-    if (!m_socket.disconnect())
+    if (m_socket.is_connected())
     {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "Socket {} failed to disconnect!", m_socket.to_string());
+        if (!m_socket.disconnect())
+        {
+            SPDLOG_LOGGER_ERROR(
+                KOMMPOT_LOGGER, "Socket {} failed to disconnect!", m_socket.to_string());
+        }
     }
 }
 
