@@ -239,6 +239,13 @@ enum class ethernet_protocol_type
     UDP = 2,
 };
 
+/**
+ * @brief gets ethernet_protocol_type as string.
+ * @return ethernet_protocol_type as string.
+ */
+auto EXPORTED ethernet_protocol_type_to_string(const ethernet_protocol_type &type) noexcept
+    -> std::string;
+
 struct ethernet_device_identification
 {
     /**

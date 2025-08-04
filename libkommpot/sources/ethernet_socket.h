@@ -35,10 +35,10 @@ public:
     [[nodiscard]] auto to_string() const -> const std::string;
 
 private:
-    kommpot::ethernet_protocol_type m_protocol;
+    kommpot::ethernet_protocol_type m_protocol = kommpot::ethernet_protocol_type::UNKNOWN;
     std::shared_ptr<ethernet_ip_address> m_ip_address = nullptr;
     int32_t m_ip_family = 0;
-    uint16_t m_port;
+    uint16_t m_port = 0;
 
     /**
      * @attention socket() function returns different error on Windows and other OSes.

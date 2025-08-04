@@ -130,3 +130,22 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
 
     return device_list;
 }
+
+auto kommpot::ethernet_protocol_type_to_string(const ethernet_protocol_type &type) noexcept
+    -> std::string
+{
+    switch (type)
+    {
+    case ethernet_protocol_type::UNKNOWN: {
+        return "UNKNOWN";
+    }
+    case ethernet_protocol_type::TCP: {
+        return "TCP";
+    }
+    case ethernet_protocol_type::UDP: {
+        return "UDP";
+    }
+    default:
+        return "";
+    }
+}

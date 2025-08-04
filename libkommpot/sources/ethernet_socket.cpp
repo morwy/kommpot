@@ -20,7 +20,8 @@
 
 ethernet_socket::ethernet_socket()
 {
-    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket constructed object {}.", static_cast<void *>(this));
+    SPDLOG_LOGGER_TRACE(
+        KOMMPOT_LOGGER, "Socket {}: constructed object.", static_cast<void *>(this));
 }
 
 ethernet_socket::~ethernet_socket()
@@ -29,12 +30,13 @@ ethernet_socket::~ethernet_socket()
     {
         if (!disconnect())
         {
-            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to disconnect!", to_string());
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to disconnect!",
+                static_cast<void *>(this), to_string());
         }
     }
 
-    SPDLOG_LOGGER_TRACE(
-        KOMMPOT_LOGGER, "Socket {} destructed object {}.", to_string(), static_cast<void *>(this));
+    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: destructed object.",
+        static_cast<void *>(this), to_string());
 }
 
 auto ethernet_socket::initialize(const std::shared_ptr<ethernet_ip_address> ip_address,
@@ -59,7 +61,9 @@ auto ethernet_socket::initialize(const std::shared_ptr<ethernet_ip_address> ip_a
     }
     else
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Provided IP address is not IPv4 or IPv6.");
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {}: Provided IP {} address is not IPv4 or IPv6.", static_cast<void *>(this),
+            m_ip_address->to_string());
         return false;
     }
 
@@ -71,8 +75,8 @@ auto ethernet_socket::initialize(const std::shared_ptr<ethernet_ip_address> ip_a
         (m_protocol == kommpot::ethernet_protocol_type::TCP) ? IPPROTO_TCP : IPPROTO_UDP);
     if (m_handle == ETH_INVALID_SOCKET)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not created due to error: {}.",
-            to_string(), get_last_error_code_as_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: not created due to error: {}.",
+            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -83,7 +87,8 @@ auto ethernet_socket::connect() -> const bool
 {
     if (is_connected())
     {
-        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} is already connected.", to_string());
+        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: already connected.",
+            static_cast<void *>(this), to_string());
         return true;
     }
 
@@ -95,28 +100,30 @@ auto ethernet_socket::connect() -> const bool
     const auto result = ::connect(m_handle, (sockaddr *)&address, sizeof(address));
     if (result == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to connect due to error: {}.",
-            to_string(), get_last_error_code_as_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect due to error: {}.",
+            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
         close_socket();
         return false;
     }
 
     if (!read_out_hostname(m_hostname))
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to read out hostname.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to read out hostname.",
+            static_cast<void *>(this), to_string());
         close_socket();
         return false;
     }
 
     if (!read_out_mac_address(m_mac_address))
     {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "Socket {} failed to read out MAC address.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to read out MAC address.",
+            static_cast<void *>(this), to_string());
         close_socket();
         return false;
     }
 
-    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} connected successfully.", to_string());
+    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: connected successfully.",
+        static_cast<void *>(this), to_string());
 
     m_is_connected = true;
 
@@ -127,7 +134,8 @@ auto ethernet_socket::disconnect() -> const bool
 {
     if (!is_connected())
     {
-        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} is not connected.", to_string());
+        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: not connected.",
+            static_cast<void *>(this), to_string());
         return true;
     }
 
@@ -143,28 +151,31 @@ auto ethernet_socket::read(void *data, size_t size_bytes) const -> const bool
 {
     if (!is_connected())
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not connected.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: not connected.",
+            static_cast<const void *>(this), to_string());
         return false;
     }
 
     if (data == nullptr)
     {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "Socket {} read() called with nullptr data pointer.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: read() called with nullptr data pointer.",
+            static_cast<const void *>(this), to_string());
         return false;
     }
 
     if (size_bytes == 0)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} read() called with zero size.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: read() called with zero size.",
+            static_cast<const void *>(this), to_string());
         return false;
     }
 
     const auto bytes_received = recv(m_handle, static_cast<char *>(data), size_bytes, 0);
     if (bytes_received == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to read data due to error: {}.",
-            to_string(), get_last_error_code_as_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to read data due to error: {}.",
+            static_cast<const void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -175,29 +186,32 @@ auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
 {
     if (!is_connected())
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} is not connected.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: not connected.",
+            static_cast<const void *>(this), to_string());
         return false;
     }
 
     if (data == nullptr)
     {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "Socket {} write() called with nullptr data pointer.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: write() called with nullptr data pointer.",
+            static_cast<const void *>(this), to_string());
         return false;
     }
 
     if (size_bytes == 0)
     {
-        SPDLOG_LOGGER_ERROR(
-            KOMMPOT_LOGGER, "Socket {} write() called with zero size.", to_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: write() called with zero size.",
+            static_cast<const void *>(this), to_string());
         return false;
     }
 
     const auto bytes_sent = send(m_handle, static_cast<const char *>(data), size_bytes, 0);
     if (bytes_sent == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to write data due to error: {}.",
-            to_string(), get_last_error_code_as_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: failed to write data due to error: {}.",
+            static_cast<const void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -221,8 +235,8 @@ auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
     if (result == ETH_SOCKET_ERROR)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-            "Socket {} setsockopt(SO_RCVTIMEO) failed with error: {}.", to_string(),
-            get_last_error_code_as_string());
+            "Socket {} / {}: setsockopt(SO_RCVTIMEO) failed with error: {}.",
+            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -230,8 +244,8 @@ auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
     if (result == ETH_SOCKET_ERROR)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-            "Socket {} setsockopt(SO_SNDTIMEO) failed with error: {}.", to_string(),
-            get_last_error_code_as_string());
+            "Socket {} / {}: setsockopt(SO_SNDTIMEO) failed with error: {}.",
+            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -256,7 +270,7 @@ auto ethernet_socket::native_handle() const -> void *
 auto ethernet_socket::to_string() const -> const std::string
 {
     return fmt::format("{}:{} ({})", m_ip_address ? m_ip_address->to_string() : "NULL", m_port,
-        (m_protocol == kommpot::ethernet_protocol_type::TCP) ? "TCP" : "UDP");
+        kommpot::ethernet_protocol_type_to_string(m_protocol));
 }
 
 auto ethernet_socket::close_socket() -> const bool
@@ -272,7 +286,8 @@ auto ethernet_socket::close_socket() -> const bool
 
     if (result == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} failed to disconnect due to error: {}.",
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: failed to disconnect due to error: {}.", static_cast<void *>(this),
             to_string(), get_last_error_code_as_string());
         return false;
     }
@@ -280,7 +295,8 @@ auto ethernet_socket::close_socket() -> const bool
     m_handle = ETH_INVALID_SOCKET;
     m_is_connected = false;
 
-    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} disconnected successfully.", to_string());
+    SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: disconnected successfully.",
+        static_cast<void *>(this), to_string());
 
     return true;
 }
@@ -296,8 +312,8 @@ auto ethernet_socket::read_out_hostname(std::string &hostname) -> const bool
     int32_t result = getpeername(m_handle, (sockaddr *)&peer_address, &address_length_bytes);
     if (result == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} getpeername() failed with error: {}.",
-            to_string(), get_last_error_code_as_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: getpeername() failed with error: {}.",
+            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -309,8 +325,8 @@ auto ethernet_socket::read_out_hostname(std::string &hostname) -> const bool
     if (result != 0)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-            "Socket {} getnameinfo() failed with error {} (code {}).", to_string(),
-            gai_strerror(result), result);
+            "Socket {} / {}: getnameinfo() failed with error {} (code {}).",
+            static_cast<void *>(this), to_string(), gai_strerror(result), result);
     }
 
     hostname = host_buffer;
@@ -327,8 +343,8 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
     int result = InetPton(m_ip_family, m_ip_address->to_string().c_str(), &connected_ip_address);
     if (result != 1)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} InetPton() failed with error: {}.",
-            to_string(), get_last_error_code_as_string());
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: InetPton() failed with error: {}.",
+            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
         return false;
     }
 
@@ -338,7 +354,8 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
     result = SendARP(connected_ip_address, 0, mac_address_bytes, &mac_address_length);
     if (result != NO_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} SendARP() failed with error: {} (code {}).",
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: SendARP() failed with error: {} (code {}).", static_cast<void *>(this),
             to_string(), get_error_code_as_string(result), result);
         return false;
     }
