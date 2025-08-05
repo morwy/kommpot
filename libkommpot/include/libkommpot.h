@@ -392,14 +392,39 @@ protected:
 };
 
 /**
- * Provides list of devices according to specified device_id.
+ * Provides list of devices according to specified identifications.
  * Returns all devices if device_id is not specified.
+ * @attention blocking call.
  *
- * @param device_id.
+ * @param identifications.
  * @return std::vector of devices.
  */
 auto EXPORTED devices(const std::vector<device_identification> &identifications = {})
     -> std::vector<std::shared_ptr<kommpot::device_communication>>;
+
+/**
+ * Provides list of devices according to specified identifications.
+ * Returns all devices if device_id is not specified.
+ * @attention non-blocking call.
+ *
+ * @param identifications.
+ * @return std::vector of devices.
+ */
+enum class enumeration_status
+{
+    UNKNOWN = 0,
+    ENUMERATING_USB_DEVICES = 1,
+    ENUMERATING_ETHERNET_DEVICES = 2,
+    COMPLETED = 3
+};
+
+using device_callback =
+    std::function<void(std::vector<std::shared_ptr<kommpot::device_communication>>)>;
+using status_callback = std::function<void(kommpot::enumeration_status)>;
+
+auto EXPORTED devices(const std::vector<device_identification> &identifications,
+    device_callback device_cb, status_callback status_cb) -> void;
+
 } // namespace kommpot
 
 #endif // LIBKOMMPOT_H

@@ -100,6 +100,25 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     }
 }
 
+auto kommpot::ethernet_protocol_type_to_string(const ethernet_protocol_type &type) noexcept
+    -> std::string
+{
+    switch (type)
+    {
+    case ethernet_protocol_type::UNKNOWN: {
+        return "UNKNOWN";
+    }
+    case ethernet_protocol_type::TCP: {
+        return "TCP";
+    }
+    case ethernet_protocol_type::UDP: {
+        return "UDP";
+    }
+    default:
+        return "";
+    }
+}
+
 kommpot::device_communication::device_communication(kommpot::device_identification identification)
     : m_identification_variant(std::move(identification))
 {}
@@ -131,21 +150,8 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
     return device_list;
 }
 
-auto kommpot::ethernet_protocol_type_to_string(const ethernet_protocol_type &type) noexcept
-    -> std::string
+auto kommpot::devices(const std::vector<device_identification> &identifications,
+    device_callback device_cb, status_callback status_cb) -> void
 {
-    switch (type)
-    {
-    case ethernet_protocol_type::UNKNOWN: {
-        return "UNKNOWN";
-    }
-    case ethernet_protocol_type::TCP: {
-        return "TCP";
-    }
-    case ethernet_protocol_type::UDP: {
-        return "UDP";
-    }
-    default:
-        return "";
-    }
+    kommpot_core::instance().devices(identifications, device_cb, status_cb);
 }
