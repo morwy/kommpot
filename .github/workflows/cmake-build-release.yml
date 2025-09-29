@@ -12,7 +12,7 @@ jobs:
       RELEASE_ENTRY_TEXT: ${{ steps.git-cliff-release-entry.outputs.content }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -124,7 +124,7 @@ jobs:
             c_compiler: cl
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set reusable strings
       id: strings
