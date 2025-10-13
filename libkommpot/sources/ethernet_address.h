@@ -83,6 +83,11 @@ public:
         std::memcpy(value.data(), data, value.size());
     }
 
+    auto empty() const -> bool
+    {
+        return memcmp(value.data(), "\x00\x00\x00\x00\x00\x00", value.size()) == 0;
+    }
+
     auto to_string() const -> const std::string
     {
         std::stringstream result;

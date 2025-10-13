@@ -2,6 +2,7 @@
 
 #include <ethernet_address_factory.h>
 #include <ethernet_context.h>
+#include <ethernet_tools.h>
 #include <kommpot_core.h>
 #include <libkommpot.h>
 #include <third-party/spdlog/include/spdlog/spdlog.h>
@@ -29,8 +30,18 @@
 
 #else
 #    include <arpa/inet.h>
+#    include <ifaddrs.h>
 #    include <sys/socket.h>
 #    include <unistd.h>
+
+#    ifdef __linux__
+#        include <netpacket/packet.h>
+#    endif
+
+#    ifdef __APPLE__
+#        include <net/if_dl.h>
+#    endif
+
 #endif
 
 communication_ethernet::communication_ethernet(
@@ -444,9 +455,211 @@ auto communication_ethernet::get_all_interfaces()
 
 #else
 
+    struct ifaddrs *adapters_raw = nullptr;
+    if (getifaddrs(&adapters_raw) == -1)
+    {
+
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed getting list of interfaces due to error: {}.",
+            ethernet_tools::get_last_error_code_as_string());
+        return {};
+    }
+
+    auto adapters = std::shared_ptr<ifaddrs>(adapters_raw, [](ifaddrs *ptr) {
+        if (ptr != nullptr)
+        {
+            freeifaddrs(ptr);
+        }
+    });
+
+    for (auto adapter = adapters.get(); adapter != nullptr; adapter = adapter->ifa_next)
+    {
+        if (adapter->ifa_addr == nullptr)
+        {
+            continue;
+        }
+
+        /**
+         * @brief skip non-Ethernet interfaces.
+         */
+        if ((strncmp(adapter->ifa_name, "en", 2) != 0 && strncmp(adapter->ifa_name, "eth", 3) != 0))
+        {
+            SPDLOG_LOGGER_TRACE(
+                KOMMPOT_LOGGER, "Skipping non-Ethernet interface: {}", adapter->ifa_name);
+            continue;
+        }
+
+        /**
+         * @brief fill in the information structure.
+         */
+
+        /**
+         * @brief get current MAC addresses.
+         */
+        if (adapter->ifa_addr->sa_family == AF_LINK)
+        {
+            auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
+
+#    ifdef __linux__
+            struct sockaddr_ll *s = (struct sockaddr_ll *)adapter->ifa_addr;
+            if (s->sll_halen == 6)
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                    "Interface {} has invalid MAC address length: {}.", adapter->ifa_name,
+                    sdl->sll_addr);
+                continue;
+            }
+
+            interface.mac_address = ethernet_mac_address(sdl->sll_addr);
+#    elif __APPLE__
+
+            /**
+             * @attention On macOS, the sockaddr_dl sdl_data field has interface name appended
+             * before the MAC address.
+             */
+            struct sockaddr_dl *sdl = (struct sockaddr_dl *)adapter->ifa_addr;
+
+            if (sdl->sdl_alen != 6)
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                    "Interface {} has invalid MAC address length: {}.", adapter->ifa_name,
+                    sdl->sdl_alen);
+                continue;
+            }
+
+            const uint8_t macIndex = interface.adapter_name.size();
+
+            uint8_t mac[6] = {0};
+            memcpy(mac, &sdl->sdl_data[macIndex], 6);
+
+            interface.mac_address = ethernet_mac_address(mac);
+#    endif
+        }
+        /**
+         * @brief get current IP addresses.
+         */
+        else if (adapter->ifa_addr->sa_family == AF_INET)
+        {
+            auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
+
+            if (!ethernet_address_factory::from_sockaddr_in(
+                    adapter->ifa_addr, interface.ipv4.address))
+            {
+                SPDLOG_LOGGER_ERROR(
+                    KOMMPOT_LOGGER, "Failed to create IPv4 address from sockaddr_in.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::from_sockaddr_in(
+                    adapter->ifa_netmask, interface.ipv4.mask))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create IPv4 mask from sockaddr_in.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::calculate_base_address(
+                    interface.ipv4.address, interface.ipv4.mask, interface.ipv4.base_address))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 base address.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::calculate_mask_prefix(
+                    interface.ipv4.mask, interface.ipv4.mask_prefix))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 mask prefix.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::calculate_max_hosts(
+                    interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.max_hosts))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 max hosts.");
+                continue;
+            }
+        }
+        else if (adapter->ifa_addr->sa_family == AF_INET6)
+        {
+            auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
+
+            if (!ethernet_address_factory::from_sockaddr_in(
+                    adapter->ifa_addr, interface.ipv6.address))
+            {
+                SPDLOG_LOGGER_ERROR(
+                    KOMMPOT_LOGGER, "Failed to create IPv6 address from sockaddr_in.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::from_sockaddr_in(
+                    adapter->ifa_netmask, interface.ipv6.mask))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create IPv6 mask from sockaddr_in.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::calculate_base_address(
+                    interface.ipv6.address, interface.ipv6.mask, interface.ipv6.base_address))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 base address.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::calculate_mask_prefix(
+                    interface.ipv6.mask, interface.ipv6.mask_prefix))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 mask prefix.");
+                continue;
+            }
+
+            if (!ethernet_address_factory::calculate_max_hosts(
+                    interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.max_hosts))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 max hosts.");
+                continue;
+            }
+        }
+        else
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Unsupported address family {} for interface {}.",
+                adapter->ifa_addr->sa_family, adapter->ifa_name);
+            continue;
+        }
+    }
+
+    for (auto it = interfaces.begin(); it != interfaces.end();)
+    {
+        if (it->mac_address.empty() || (it->ipv4.address == nullptr && it->ipv6.address == nullptr))
+        {
+            SPDLOG_LOGGER_TRACE(
+                KOMMPOT_LOGGER, "Removing incomplete interface: {}", it->adapter_name);
+            it = interfaces.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
 #endif
 
     return interfaces;
+}
+
+auto communication_ethernet::find_or_create_interface(
+    std::vector<ethernet_interface_information> &interfaces, const std::string &interface_name)
+    -> ethernet_interface_information &
+{
+    for (auto &interface : interfaces)
+    {
+        if (interface.adapter_name == interface_name)
+        {
+            return interface;
+        }
+    }
+
+    auto &interface = interfaces.emplace_back();
+    interface.adapter_name = interface_name;
+
+    return interfaces.back();
 }
 
 auto communication_ethernet::is_host_reachable(

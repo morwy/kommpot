@@ -37,6 +37,9 @@ public:
     [[nodiscard]] static auto calculate_mask(const std::shared_ptr<ethernet_ip_address> ip_address,
         const uint32_t &mask_prefix, std::shared_ptr<ethernet_ip_address> &mask) -> bool;
 
+    [[nodiscard]] static auto calculate_mask_prefix(
+        const std::shared_ptr<ethernet_ip_address> mask, uint32_t &mask_prefix) -> bool;
+
     [[nodiscard]] static auto calculate_max_hosts(
         const std::shared_ptr<ethernet_ip_address> ip_address, const uint32_t &mask_prefix,
         uint32_t &max_hosts) -> bool;

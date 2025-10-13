@@ -1,6 +1,7 @@
 #include <ethernet_socket.h>
 
 #include <ethernet_context.h>
+#include <ethernet_tools.h>
 #include <kommpot_core.h>
 
 #ifdef _WIN32
@@ -76,7 +77,8 @@ auto ethernet_socket::initialize(const std::shared_ptr<ethernet_ip_address> ip_a
     if (m_handle == ETH_INVALID_SOCKET)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: not created due to error: {}.",
-            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -101,7 +103,8 @@ auto ethernet_socket::connect() -> const bool
     if (result == ETH_SOCKET_ERROR)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect due to error: {}.",
-            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         close_socket();
         return false;
     }
@@ -175,7 +178,8 @@ auto ethernet_socket::read(void *data, size_t size_bytes) const -> const bool
     if (bytes_received == ETH_SOCKET_ERROR)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to read data due to error: {}.",
-            static_cast<const void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<const void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -211,7 +215,8 @@ auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
             "Socket {} / {}: failed to write data due to error: {}.",
-            static_cast<const void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<const void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -236,7 +241,8 @@ auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
             "Socket {} / {}: setsockopt(SO_RCVTIMEO) failed with error: {}.",
-            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -245,7 +251,8 @@ auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
             "Socket {} / {}: setsockopt(SO_SNDTIMEO) failed with error: {}.",
-            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -288,7 +295,7 @@ auto ethernet_socket::close_socket() -> const bool
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
             "Socket {} / {}: failed to disconnect due to error: {}.", static_cast<void *>(this),
-            to_string(), get_last_error_code_as_string());
+            to_string(), ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -313,7 +320,8 @@ auto ethernet_socket::read_out_hostname(std::string &hostname) -> const bool
     if (result == ETH_SOCKET_ERROR)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: getpeername() failed with error: {}.",
-            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -344,7 +352,8 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
     if (result != 1)
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: InetPton() failed with error: {}.",
-            static_cast<void *>(this), to_string(), get_last_error_code_as_string());
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
         return false;
     }
 
@@ -356,7 +365,7 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
     {
         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
             "Socket {} / {}: SendARP() failed with error: {} (code {}).", static_cast<void *>(this),
-            to_string(), get_error_code_as_string(result), result);
+            to_string(), ethernet_tools::get_error_code_as_string(result), result);
         return false;
     }
 
@@ -369,57 +378,4 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
 #endif
 
     return true;
-}
-
-auto ethernet_socket::get_last_error_code_as_string() -> const std::string
-{
-    const auto error_code = get_error_code();
-    return get_error_code_as_string(error_code) + " (code " + std::to_string(error_code) + ")";
-}
-
-auto ethernet_socket::get_error_code() -> const int32_t
-{
-#ifdef _WIN32
-    return WSAGetLastError();
-#else
-    return errno;
-#endif
-}
-
-auto ethernet_socket::get_error_code_as_string(const int32_t &error_code) -> const std::string
-{
-#ifdef _WIN32
-    char *buffer = nullptr;
-
-    const auto size = FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&buffer, 0, nullptr);
-
-    std::string message = "";
-    if (size > 0 && buffer != nullptr)
-    {
-        message.assign(buffer, size);
-
-        /**
-         * @attention removing trailing newlines.
-         */
-        while (!message.empty() && (message.back() == '\n' || message.back() == '\r'))
-        {
-            message.pop_back();
-        }
-    }
-    else
-    {
-        message = "Unknown error code " + std::to_string(error_code);
-    }
-
-    if (buffer != nullptr)
-    {
-        LocalFree(buffer);
-    }
-
-    return message;
-#else
-    return std::strerror(error_code);
-#endif
 }

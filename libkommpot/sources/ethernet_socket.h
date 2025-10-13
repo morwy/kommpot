@@ -63,14 +63,6 @@ private:
 
     [[nodiscard]] auto read_out_hostname(std::string &hostname) -> const bool;
     [[nodiscard]] auto read_out_mac_address(ethernet_mac_address &mac_address) -> const bool;
-
-    /**
-     * @attention unifying error code types under standard int32_t.
-     */
-    [[nodiscard]] static auto get_last_error_code_as_string() -> const std::string;
-    [[nodiscard]] static auto get_error_code() -> const int32_t;
-    [[nodiscard]] static auto get_error_code_as_string(const int32_t &error_code)
-        -> const std::string;
 };
 
 #endif // ETHERNET_SOCKET_H

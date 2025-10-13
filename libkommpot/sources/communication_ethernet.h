@@ -69,6 +69,9 @@ private:
     [[nodiscard]] static auto get_all_interfaces()
         -> const std::vector<ethernet_interface_information>;
 
+    static auto find_or_create_interface(std::vector<ethernet_interface_information> &interfaces,
+        const std::string &interface_name) -> ethernet_interface_information &;
+
     static auto is_host_reachable(const std::shared_ptr<ethernet_ip_address> ip_address,
         const uint16_t port, kommpot::ethernet_device_identification &information) -> bool;
     static auto is_host_suitable(const kommpot::ethernet_device_identification &search_id,

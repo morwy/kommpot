@@ -73,6 +73,12 @@ auto ethernet_address_factory::from_uint32_t(
 auto ethernet_address_factory::from_sockaddr_in(
     const sockaddr *structure, std::shared_ptr<ethernet_ip_address> &address) -> bool
 {
+    if (structure == nullptr)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Provided sockaddr structure is nullptr.");
+        return false;
+    }
+
     if (structure->sa_family == AF_INET)
     {
         auto ip = std::make_shared<ethernet_ipv4_address>();
@@ -240,6 +246,54 @@ auto ethernet_address_factory::calculate_mask(const std::shared_ptr<ethernet_ip_
         mask = ip;
 
         return true;
+    }
+    else
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Provided IP address is not IPv4 or IPv6.");
+        return false;
+    }
+
+    return true;
+}
+
+auto ethernet_address_factory::calculate_mask_prefix(
+    const std::shared_ptr<ethernet_ip_address> mask, uint32_t &mask_prefix) -> bool
+{
+    if (const auto *ipv4_mask = dynamic_cast<ethernet_ipv4_address *>(mask.get()))
+    {
+        const uint32_t mask_value = ipv4_mask->to_uint32();
+        mask_prefix = 0;
+
+        for (int i = 31; i >= 0; --i)
+        {
+            if ((mask_value >> i) & 0x01)
+            {
+                ++mask_prefix;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else if (const auto *ipv6_mask = dynamic_cast<ethernet_ipv6_address *>(mask.get()))
+    {
+        mask_prefix = 0;
+
+        for (size_t i = 0; i < ipv6_mask->value.size(); ++i)
+        {
+            for (int bit = 15; bit >= 0; --bit)
+            {
+                if ((ipv6_mask->value[i] >> bit) & 0x01)
+                {
+                    ++mask_prefix;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+        }
     }
     else
     {
