@@ -14,9 +14,23 @@
 // clang-format on
 #else
 #    include <arpa/inet.h>
+#    include <net/if_dl.h>
+#    include <net/route.h>
 #    include <netdb.h>
+#    include <netinet/if_ether.h>
+#    include <netinet/in.h>
 #    include <sys/socket.h>
+#    include <sys/sysctl.h>
 #    include <unistd.h>
+
+#    ifndef SA_SIZE
+#        define SA_SIZE(sa)                                                                        \
+            (((sa) == NULL)                                                                        \
+                    ? sizeof(long)                                                                 \
+                    : ((sa)->sin_len == 0 ? sizeof(long)                                           \
+                                          : (1 + (((sa)->sin_len - 1) | (sizeof(long) - 1)))))
+#    endif
+
 #endif
 
 ethernet_socket::ethernet_socket()
@@ -371,7 +385,70 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
 
     mac_address = ethernet_mac_address(mac_address_bytes);
 
-#else
+#elif defined __linux__
+
+    return false;
+
+#elif defined __APPLE__
+
+    struct in_addr ip_address = {};
+    if (inet_pton(AF_INET, m_ip_address->to_string().c_str(), &ip_address) != 1)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: inet_pton() failed to convert IP address.", static_cast<void *>(this),
+            to_string());
+        return false;
+    }
+
+    constexpr const uint8_t name_size_bytes = 6;
+
+    int name[name_size_bytes] = {};
+    name[0] = CTL_NET;
+    name[1] = PF_ROUTE;
+    name[2] = 0;
+    name[3] = AF_INET;
+    name[4] = NET_RT_FLAGS;
+    name[5] = RTF_LLINFO;
+
+    size_t buffer_size_bytes = 0;
+    if (sysctl(name, name_size_bytes, NULL, &buffer_size_bytes, NULL, 0) == -1)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: sysctl() failed to get size with error: {}.",
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
+        return false;
+    }
+
+    std::vector<char> buffer(buffer_size_bytes);
+    if (sysctl(name, name_size_bytes, buffer.data(), &buffer_size_bytes, NULL, 0) == -1)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: sysctl() failed to get data with error: {}.",
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
+        return false;
+    }
+
+    char *next = buffer.data();
+    char *end = buffer.data() + buffer_size_bytes;
+
+    while (next < end)
+    {
+        struct rt_msghdr *rtm = (struct rt_msghdr *)next;
+        struct sockaddr_inarp *sin = (struct sockaddr_inarp *)(rtm + 1);
+        struct sockaddr_dl *sdl = (struct sockaddr_dl *)((char *)sin + SA_SIZE(sin));
+
+        if (sin->sin_addr.s_addr == ip_address.s_addr && sdl->sdl_alen)
+        {
+            unsigned char *mac = (unsigned char *)LLADDR(sdl);
+            mac_address = ethernet_mac_address(mac);
+
+            return true;
+        }
+
+        next += rtm->rtm_msglen;
+    }
 
     return false;
 
