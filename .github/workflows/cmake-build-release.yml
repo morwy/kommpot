@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   increment-version:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
         contents: write
     outputs:
@@ -12,7 +12,7 @@ jobs:
       RELEASE_ENTRY_TEXT: ${{ steps.git-cliff-release-entry.outputs.content }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -87,12 +87,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-13, macos-14]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
         build_type: [Release]
         c_compiler: [gcc, clang, cl]
         library_type: [static, shared]
         include:
-          - os: windows-2022
+          - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
           - os: macos-13
@@ -101,16 +101,16 @@ jobs:
           - os: macos-14
             c_compiler: clang
             cpp_compiler: clang++
-          - os: ubuntu-22.04
+          - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
-          - os: ubuntu-22.04
+          - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
         exclude:
-          - os: windows-2022
+          - os: windows-latest
             c_compiler: gcc
-          - os: windows-2022
+          - os: windows-latest
             c_compiler: clang
           - os: macos-13
             c_compiler: cl
@@ -120,11 +120,11 @@ jobs:
             c_compiler: cl
           - os: macos-14
             c_compiler: gcc
-          - os: ubuntu-22.04
+          - os: ubuntu-latest
             c_compiler: cl
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set reusable strings
       id: strings
@@ -171,20 +171,20 @@ jobs:
       run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ github.workspace }}${{ env.path-separator }}${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}*
 
     - name: Upload built binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ steps.strings.outputs.archive-name }}
         path: ${{ steps.strings.outputs.archive-name }}
 
   create-release-entry:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
         contents: write
     needs: [increment-version, build-binaries]
 
     steps:
     - name: Downloading all built binaries
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         path: ${{ github.workspace }}
         merge-multiple: true
