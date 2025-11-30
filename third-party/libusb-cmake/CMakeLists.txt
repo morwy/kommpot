@@ -50,6 +50,12 @@ function(generate_config_file)
 
     check_struct_has_member("struct timespec" tv_sec time.h HAVE_STRUCT_TIMESPEC)
 
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        check_c_compiler_flag("-fvisibility=hidden" HAVE_VISIBILITY)
+    else()
+        set(HAVE_VISIBILITY OFF)
+    endif()
+
     if(HAVE_VISIBILITY)
         set(DEFAULT_VISIBILITY "__attribute__((visibility(\"default\")))")
     else()
@@ -70,8 +76,8 @@ function(generate_config_file)
         set(ENABLE_DEBUG_LOGGING ${LIBUSB_ENABLE_DEBUG_LOGGING})
     endif()
 
-    if(CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        check_c_compiler_flag("-fvisibility=hidden" HAVE_VISIBILITY)
+    if(WIN32 AND LIBUSB_ENABLE_WINDOWS_HOTPLUG)
+        set(LIBUSB_WINDOWS_HOTPLUG 1)
     endif()
 
     file(MAKE_DIRECTORY "${LIBUSB_GEN_INCLUDES}")
@@ -87,6 +93,8 @@ else()
     set(LIBUSB_BUILD_SHARED_LIBS_DEFAULT OFF)
 endif()
 
+include(CMakeDependentOption)
+
 option(LIBUSB_BUILD_SHARED_LIBS "Build Shared Libraries for libusb" ${LIBUSB_BUILD_SHARED_LIBS_DEFAULT})
 option(LIBUSB_BUILD_TESTING "Build Tests" OFF)
 if(LIBUSB_BUILD_TESTING)
@@ -96,6 +104,8 @@ endif()
 option(LIBUSB_BUILD_EXAMPLES "Build Example Applications" OFF)
 
 option(LIBUSB_INSTALL_TARGETS "Install libusb targets" ON)
+cmake_dependent_option(LIBUSB_EXPORT_INSTALL_TARGETS "Generate export files for installed targets" ON LIBUSB_INSTALL_TARGETS OFF)
+
 option(LIBUSB_TARGETS_INCLUDE_USING_SYSTEM "Make targets include paths System" ON)
 
 option(LIBUSB_ENABLE_LOGGING "Enable Logging" ON)
@@ -104,8 +114,23 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(LIBUSB_ENABLE_UDEV "Enable udev backend for device enumeration" ON)
 endif()
 
+if(WIN32)
+    option(LIBUSB_ENABLE_WINDOWS_HOTPLUG "Enable Windows hotplug support" OFF)
+endif()
+
+#
+
+if(LIBUSB_INSTALL_TARGETS)
+    # to make sure all variables, like CMAKE_INSTALL_LIBDIR, are initialized
+    include(GNUInstallDirs)
+endif()
+
 set(LIBUSB_GEN_INCLUDES "${CMAKE_CURRENT_BINARY_DIR}/gen_include")
 generate_config_file()
+
+#
+#
+#
 
 if(LIBUSB_BUILD_SHARED_LIBS)
     add_library(${LIBUSB_PROJECT_NAME} SHARED)
@@ -137,11 +162,17 @@ target_include_directories(${LIBUSB_PROJECT_NAME}
         "${LIBUSB_ROOT}/os"
 )
 
-if (LIBUSB_TARGETS_INCLUDE_USING_SYSTEM)
-    target_include_directories(${LIBUSB_PROJECT_NAME} SYSTEM PUBLIC "${LIBUSB_ROOT}")
+if(LIBUSB_TARGETS_INCLUDE_USING_SYSTEM)
+    set(LIBUSB_SYSTEM_FLAGS SYSTEM)
 else()
-    target_include_directories(${LIBUSB_PROJECT_NAME} PUBLIC "${LIBUSB_ROOT}")
+    set(LIBUSB_SYSTEM_FLAGS)
 endif()
+
+target_include_directories(${LIBUSB_PROJECT_NAME}
+    ${LIBUSB_SYSTEM_FLAGS} PUBLIC
+    $<BUILD_INTERFACE:${LIBUSB_ROOT}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libusb-1.0>
+)
 
 if(WIN32)
     target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
@@ -160,6 +191,13 @@ if(WIN32)
     )
     target_compile_definitions(${LIBUSB_PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS=1>)
     target_link_libraries(${LIBUSB_PROJECT_NAME} PRIVATE windowsapp)
+    if(LIBUSB_ENABLE_WINDOWS_HOTPLUG)
+        target_sources(${LIBUSB_PROJECT_NAME} PRIVATE
+            "${LIBUSB_ROOT}/os/windows_hotplug.c"
+            "${LIBUSB_ROOT}/os/windows_hotplug.h"
+        )
+        target_compile_definitions(${LIBUSB_PROJECT_NAME} PRIVATE LIBUSB_WINDOWS_HOTPLUG=1)
+    endif()
     set_target_properties(${LIBUSB_PROJECT_NAME} PROPERTIES UNITY_BUILD OFF)
 else()
     # common POSIX/non-Windows sources
@@ -231,6 +269,30 @@ if(LIBUSB_BUILD_EXAMPLES)
 endif()
 
 if(LIBUSB_INSTALL_TARGETS)
-    install(TARGETS ${LIBUSB_PROJECT_NAME})
-    install(FILES "${LIBUSB_ROOT}/libusb.h" DESTINATION "include/libusb-1.0")
+    install(FILES "${LIBUSB_ROOT}/libusb.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/libusb-1.0")
+
+    install(TARGETS ${LIBUSB_PROJECT_NAME}
+        EXPORT usb-1.0-targets
+    )
+
+    if(LIBUSB_EXPORT_INSTALL_TARGETS)
+        install(EXPORT usb-1.0-targets
+            FILE usb-1.0-targets.cmake
+            NAMESPACE libusb::
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/libusb"
+        )
+
+        include(CMakePackageConfigHelpers)
+
+        write_basic_package_version_file(
+            "${CMAKE_CURRENT_BINARY_DIR}/libusb-config-version.cmake"
+            VERSION ${LIBUSB_VERSION}
+            COMPATIBILITY SameMajorVersion
+        )
+
+        install(FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/libusb-config-version.cmake"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/libusb"
+        )
+    endif()
 endif()

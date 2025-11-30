@@ -1035,6 +1035,21 @@ struct internal_ssplus_capability_descriptor {
 };
 /// @endcond
 
+/** \ingroup libusb_desc
+ * Get a SuperSpeedPlus USB Device Capability descriptor
+ *
+ * Since version 1.0.28, \ref LIBUSB_API_VERSION >= 0x0100010B
+ *
+ * \param ctx the context to operate on, or NULL for the default context
+ * \param dev_cap Device Capability descriptor with a bDevCapabilityType of
+ * \ref libusb_bos_type::LIBUSB_BT_SUPERSPEED_PLUS_CAPABILITY
+ * LIBUSB_BT_SUPERSPEED_PLUS_CAPABILITY
+ * \param ssplus_usb_device_cap output location for the SuperSpeedPlus USB Device
+ * Capability descriptor. Only valid if 0 was returned. Must be freed with
+ * libusb_free_ssplus_usb_device_capability_descriptor() after use.
+ * \returns 0 on success
+ * \returns a LIBUSB_ERROR code on error
+ */
 int API_EXPORTED libusb_get_ssplus_usb_device_capability_descriptor(
 	libusb_context *ctx,
 	struct libusb_bos_dev_capability_descriptor *dev_cap,
@@ -1102,6 +1117,17 @@ int API_EXPORTED libusb_get_ssplus_usb_device_capability_descriptor(
 	return LIBUSB_SUCCESS;
 }
 
+/** \ingroup libusb_desc
+ * Free a SuperSpeedPlus USB Device Capability descriptor obtained from
+ * libusb_get_ssplus_usb_device_capability_descriptor().
+ * It is safe to call this function with a NULL ssplus_usb_device_cap
+ * parameter, in which case the function simply returns.
+ *
+ * Since version 1.0.28, \ref LIBUSB_API_VERSION >= 0x0100010B
+ *
+ * \param ssplus_usb_device_cap the SuperSpeedPlus USB Device Capability descriptor
+ * to free
+ */
 void API_EXPORTED libusb_free_ssplus_usb_device_capability_descriptor(
 	struct libusb_ssplus_usb_device_capability_descriptor *ssplus_usb_device_cap)
 {
@@ -1285,9 +1311,10 @@ int API_EXPORTED libusb_get_string_descriptor_ascii(libusb_device_handle *dev_ha
 	r = libusb_get_string_descriptor(dev_handle, 0, 0, str.buf, 4);
 	if (r < 0)
 		return r;
-	else if (r != 4 || str.desc.bLength < 4 || str.desc.bDescriptorType != LIBUSB_DT_STRING)
+	else if (r != 4 || str.desc.bLength < 4 || str.desc.bDescriptorType != LIBUSB_DT_STRING) {
+		usbi_warn(HANDLE_CTX(dev_handle), "invalid language ID string descriptor");
 		return LIBUSB_ERROR_IO;
-	else if (str.desc.bLength & 1)
+	} else if (str.desc.bLength & 1)
 		usbi_warn(HANDLE_CTX(dev_handle), "suspicious bLength %u for language ID string descriptor", str.desc.bLength);
 
 	langid = libusb_le16_to_cpu(str.desc.wData[0]);
