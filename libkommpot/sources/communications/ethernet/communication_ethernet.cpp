@@ -7,12 +7,12 @@
 #include <libkommpot.h>
 #include <third-party/spdlog/include/spdlog/spdlog.h>
 
-#include <codecvt>
 #include <memory>
 #include <vector>
 
 #ifdef _WIN32
 // clang-format off
+#    include <codecvt>
 #    include <winsock2.h>
 #    include <ws2tcpip.h>
 #    include <iphlpapi.h>
@@ -495,7 +495,11 @@ auto communication_ethernet::get_all_interfaces()
         /**
          * @brief get current MAC addresses.
          */
+#    ifdef __linux__
+        if (adapter->ifa_addr->sa_family == AF_PACKET)
+#    elif __APPLE__
         if (adapter->ifa_addr->sa_family == AF_LINK)
+#endif
         {
             auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
 
@@ -505,11 +509,11 @@ auto communication_ethernet::get_all_interfaces()
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
                     "Interface {} has invalid MAC address length: {}.", adapter->ifa_name,
-                    sdl->sll_addr);
+                    s->sll_halen);
                 continue;
             }
 
-            interface.mac_address = ethernet_mac_address(sdl->sll_addr);
+            interface.mac_address = ethernet_mac_address(s->sll_addr);
 #    elif __APPLE__
 
             /**

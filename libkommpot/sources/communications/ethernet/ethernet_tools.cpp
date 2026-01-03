@@ -1,5 +1,7 @@
 #include <communications/ethernet/ethernet_tools.h>
 
+#include <cstring>
+
 #ifdef _WIN32
 // clang-format off
 #    include <winsock2.h>

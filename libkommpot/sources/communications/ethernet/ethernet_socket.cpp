@@ -14,14 +14,17 @@
 // clang-format on
 #else
 #    include <arpa/inet.h>
-#    include <net/if_dl.h>
 #    include <net/route.h>
 #    include <netdb.h>
 #    include <netinet/if_ether.h>
 #    include <netinet/in.h>
 #    include <sys/socket.h>
-#    include <sys/sysctl.h>
 #    include <unistd.h>
+
+#    ifdef __APPLE__
+#        include <net/if_dl.h>
+#        include <sys/sysctl.h>
+#    endif
 
 #    ifndef SA_SIZE
 #        define SA_SIZE(sa)                                                                        \
