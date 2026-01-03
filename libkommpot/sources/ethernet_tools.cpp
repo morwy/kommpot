@@ -1,5 +1,11 @@
 #include <ethernet_tools.h>
 
+#ifdef _WIN32
+// clang-format off
+#    include <winsock2.h>
+// clang-format on
+#endif
+
 auto ethernet_tools::get_last_error_code_as_string() -> const std::string
 {
     const auto error_code = get_error_code();
