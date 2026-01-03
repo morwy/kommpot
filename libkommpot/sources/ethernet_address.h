@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <stdint.h>
 
 class ethernet_ip_address
 {
