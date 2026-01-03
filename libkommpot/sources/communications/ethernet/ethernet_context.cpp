@@ -1,4 +1,4 @@
-#include <ethernet_context.h>
+#include <communications/ethernet/ethernet_context.h>
 
 #include <kommpot_core.h>
 

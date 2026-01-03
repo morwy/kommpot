@@ -1,8 +1,8 @@
 #include <kommpot_core.h>
 
-#include <communication_ethernet.h>
 #include <communication_libusb.h>
-#include <ethernet_context.h>
+#include <communications/ethernet/communication_ethernet.h>
+#include <communications/ethernet/ethernet_context.h>
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/callback_sink.h>

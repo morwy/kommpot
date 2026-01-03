@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <ethernet_socket.h>
+#include <communications/ethernet/ethernet_socket.h>
 #include <libkommpot.h>
 
 #include <cstddef>

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <ethernet_address.h>
+#include <communications/ethernet/ethernet_address.h>
 #include <libkommpot.h>
 
 #include <cstring>

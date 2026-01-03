@@ -1,7 +1,7 @@
 #include "libkommpot.h"
 
-#include <communication_ethernet.h>
 #include <communication_libusb.h>
+#include <communications/ethernet/communication_ethernet.h>
 #include <kommpot_core.h>
 
 #include <cstdint>

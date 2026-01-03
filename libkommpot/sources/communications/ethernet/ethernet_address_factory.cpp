@@ -1,4 +1,4 @@
-#include <ethernet_address_factory.h>
+#include <communications/ethernet/ethernet_address_factory.h>
 
 #include <kommpot_core.h>
 

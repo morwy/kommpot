@@ -1,8 +1,8 @@
 #include "communication_ethernet.h"
 
-#include <ethernet_address_factory.h>
-#include <ethernet_context.h>
-#include <ethernet_tools.h>
+#include <communications/ethernet/ethernet_address_factory.h>
+#include <communications/ethernet/ethernet_context.h>
+#include <communications/ethernet/ethernet_tools.h>
 #include <kommpot_core.h>
 #include <libkommpot.h>
 #include <third-party/spdlog/include/spdlog/spdlog.h>

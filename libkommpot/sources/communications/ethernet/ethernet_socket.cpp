@@ -1,7 +1,7 @@
-#include <ethernet_socket.h>
+#include <communications/ethernet/ethernet_socket.h>
 
-#include <ethernet_context.h>
-#include <ethernet_tools.h>
+#include <communications/ethernet/ethernet_context.h>
+#include <communications/ethernet/ethernet_tools.h>
 #include <kommpot_core.h>
 
 #ifdef _WIN32
