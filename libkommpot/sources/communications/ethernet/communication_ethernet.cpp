@@ -71,7 +71,7 @@ auto communication_ethernet::devices(
     const auto interfaces = get_all_interfaces();
     if (interfaces.empty())
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "No Ethernet interfaces found.");
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "No Ethernet interfaces found!");
         return {};
     }
 
@@ -107,13 +107,10 @@ auto communication_ethernet::devices(
                 kommpot::ethernet_device_identification host_id;
                 if (!is_host_reachable(ip_address, identification->port, host_id))
                 {
-                    SPDLOG_LOGGER_TRACE(
-                        KOMMPOT_LOGGER, "Host {} is not reachable.", ip_address->to_string());
                     continue;
                 }
 
-                std::shared_ptr<kommpot::device_communication> host =
-                    std::make_shared<communication_ethernet>(host_id);
+                auto host = std::make_shared<communication_ethernet>(host_id);
                 if (host == nullptr)
                 {
                     SPDLOG_LOGGER_ERROR(
@@ -499,7 +496,7 @@ auto communication_ethernet::get_all_interfaces()
         if (adapter->ifa_addr->sa_family == AF_PACKET)
 #    elif __APPLE__
         if (adapter->ifa_addr->sa_family == AF_LINK)
-#endif
+#    endif
         {
             auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
 
@@ -634,7 +631,7 @@ auto communication_ethernet::get_all_interfaces()
         if (it->mac_address.empty() || (it->ipv4.address == nullptr && it->ipv6.address == nullptr))
         {
             SPDLOG_LOGGER_TRACE(
-                KOMMPOT_LOGGER, "Removing incomplete interface: {}", it->adapter_name);
+                KOMMPOT_LOGGER, "Removing incomplete interface: {}.", it->adapter_name);
             it = interfaces.erase(it);
         }
         else
@@ -670,9 +667,14 @@ auto communication_ethernet::is_host_reachable(
     const std::shared_ptr<ethernet_ip_address> ip_address, const uint16_t port,
     kommpot::ethernet_device_identification &information) -> bool
 {
+    /**
+     * @todo shall we also check the UDP here?
+     */
+    const auto protocol = kommpot::ethernet_protocol_type::TCP;
+
     auto socket = ethernet_socket();
 
-    if (!socket.initialize(ip_address, port, kommpot::ethernet_protocol_type::TCP))
+    if (!socket.initialize(ip_address, port, protocol))
     {
         return false;
     }
@@ -684,10 +686,13 @@ auto communication_ethernet::is_host_reachable(
 
     if (!socket.connect())
     {
+        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host '{}' is not reachable via '{}'.",
+            ip_address->to_string(), kommpot::ethernet_protocol_type_to_string(protocol));
         return false;
     }
 
-    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "connect() to host {} succeed", socket.to_string());
+    SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host '{}' is reachable via '{}'.", socket.to_string(),
+        kommpot::ethernet_protocol_type_to_string(protocol));
 
     information.name = socket.hostname();
     information.ip = ip_address->to_string();
@@ -716,8 +721,8 @@ auto communication_ethernet::is_host_suitable(
     const bool is_name_match = is_wildcard_match(search_id.name, host_id.name);
     if (!is_name_match)
     {
-        SPDLOG_LOGGER_TRACE(
-            KOMMPOT_LOGGER, "Host {} does not match search name {}", host_id.name, search_id.name);
+        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host '{}' does not match search name '{}'!",
+            host_id.name, search_id.name);
         return false;
     }
 
@@ -728,7 +733,7 @@ auto communication_ethernet::is_host_suitable(
     if (!is_ip_match)
     {
         SPDLOG_LOGGER_TRACE(
-            KOMMPOT_LOGGER, "Host {} does not match search IP {}", host_id.ip, search_id.ip);
+            KOMMPOT_LOGGER, "Host '{}' does not match search IP '{}'!", host_id.ip, search_id.ip);
         return false;
     }
 
@@ -738,8 +743,8 @@ auto communication_ethernet::is_host_suitable(
     const bool is_mac_match = is_wildcard_match(search_id.mac, host_id.mac);
     if (!is_mac_match)
     {
-        SPDLOG_LOGGER_TRACE(
-            KOMMPOT_LOGGER, "Host {} does not match search MAC {}", host_id.mac, search_id.mac);
+        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host '{}' does not match search MAC '{}'!",
+            host_id.mac, search_id.mac);
         return false;
     }
 
@@ -754,10 +759,11 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
     std::vector<std::thread> threads;
     std::vector<std::shared_ptr<kommpot::device_communication>> hosts;
 
-    for (uint32_t i = 1; i < network.max_hosts - 1; ++i)
+    for (uint32_t host_index = 1; host_index < network.max_hosts - 1; ++host_index)
     {
         std::shared_ptr<ethernet_ip_address> new_address = nullptr;
-        if (!ethernet_address_factory::calculate_new_address(network.base_address, i, new_address))
+        if (!ethernet_address_factory::calculate_new_address(
+                network.base_address, host_index, new_address))
         {
             continue;
         }
@@ -774,8 +780,7 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
                 return;
             }
 
-            std::shared_ptr<kommpot::device_communication> host =
-                std::make_shared<communication_ethernet>(host_id);
+            auto host = std::make_shared<communication_ethernet>(host_id);
             if (!host)
             {
                 SPDLOG_LOGGER_ERROR(
