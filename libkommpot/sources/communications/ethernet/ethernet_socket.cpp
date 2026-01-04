@@ -119,7 +119,7 @@ auto ethernet_socket::connect() -> const bool
     const auto result = ::connect(m_handle, (sockaddr *)&address, sizeof(address));
     if (result == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect due to error: {}.",
+        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect due to error: {}.",
             static_cast<void *>(this), to_string(),
             ethernet_tools::get_last_error_code_as_string());
         close_socket();
