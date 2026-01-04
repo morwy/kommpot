@@ -68,28 +68,43 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
         /**
          * @brief libusb devices.
          */
-        status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
+        if (status_cb)
+        {
+            status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
+        }
 
         auto libusb_devices = communication_libusb::devices(identifications);
         device_list.insert(std::end(device_list),
             std::make_move_iterator(std::begin(libusb_devices)),
             std::make_move_iterator(std::end(libusb_devices)));
 
-        device_cb(device_list);
+        if (device_cb)
+        {
+            device_cb(device_list);
+        }
 
         /**
          * @brief ethernet devices.
          */
-        status_cb(kommpot::enumeration_status::ENUMERATING_ETHERNET_DEVICES);
+        if (status_cb)
+        {
+            status_cb(kommpot::enumeration_status::ENUMERATING_ETHERNET_DEVICES);
+        }
 
         auto ethernet_devices = communication_ethernet::devices(identifications);
         device_list.insert(std::end(device_list),
             std::make_move_iterator(std::begin(ethernet_devices)),
             std::make_move_iterator(std::end(ethernet_devices)));
 
-        device_cb(device_list);
+        if (device_cb)
+        {
+            device_cb(device_list);
+        }
 
-        status_cb(kommpot::enumeration_status::COMPLETED);
+        if (status_cb)
+        {
+            status_cb(kommpot::enumeration_status::COMPLETED);
+        }
     });
 }
 
