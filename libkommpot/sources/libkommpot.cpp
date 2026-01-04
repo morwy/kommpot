@@ -95,8 +95,9 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     case communication_type::ETHERNET: {
         return "ethernet";
     }
-    default:
+    default: {
         return "";
+    }
     }
 }
 
@@ -154,4 +155,26 @@ auto kommpot::devices(const std::vector<device_identification> &identifications,
     device_callback device_cb, status_callback status_cb) -> void
 {
     kommpot_core::instance().devices(identifications, device_cb, status_cb);
+}
+
+auto kommpot::enumeration_status_to_string(const enumeration_status &status) noexcept -> std::string
+{
+    switch (status)
+    {
+    case enumeration_status::UNKNOWN: {
+        return "Unknown";
+    }
+    case enumeration_status::ENUMERATING_USB_DEVICES: {
+        return "Enumerating USB devices";
+    }
+    case enumeration_status::ENUMERATING_ETHERNET_DEVICES: {
+        return "Enumerating Ethernet devices";
+    }
+    case enumeration_status::COMPLETED: {
+        return "Completed";
+    }
+    default: {
+        return "";
+    }
+    }
 }

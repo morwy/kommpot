@@ -418,6 +418,14 @@ enum class enumeration_status
     COMPLETED = 3
 };
 
+/**
+ * @brief converts enumeration_status to a readable string value.
+ * @param status of enumeration.
+ * @return string.
+ */
+auto EXPORTED enumeration_status_to_string(const enumeration_status &status) noexcept
+    -> std::string;
+
 using device_callback =
     std::function<void(std::vector<std::shared_ptr<kommpot::device_communication>>)>;
 using status_callback = std::function<void(kommpot::enumeration_status)>;
