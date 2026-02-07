@@ -402,14 +402,6 @@ protected:
 auto EXPORTED devices(const std::vector<device_identification> &identifications = {})
     -> std::vector<std::shared_ptr<kommpot::device_communication>>;
 
-/**
- * Provides list of devices according to specified identifications.
- * Returns all devices if device_id is not specified.
- * @attention non-blocking call.
- *
- * @param identifications.
- * @return std::vector of devices.
- */
 enum class enumeration_status
 {
     UNKNOWN = 0,
@@ -426,6 +418,14 @@ enum class enumeration_status
 auto EXPORTED enumeration_status_to_string(const enumeration_status &status) noexcept
     -> std::string;
 
+/**
+ * Provides list of devices according to specified identifications.
+ * Returns all devices if device_id is not specified.
+ * @attention non-blocking call.
+ *
+ * @param identifications.
+ * @return std::vector of devices.
+ */
 using device_callback =
     std::function<void(std::vector<std::shared_ptr<kommpot::device_communication>>)>;
 using status_callback = std::function<void(kommpot::enumeration_status)>;
