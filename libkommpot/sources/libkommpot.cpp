@@ -1,7 +1,15 @@
 #include "libkommpot.h"
 
-#include <communication_libusb.h>
-#include <communications/ethernet/communication_ethernet.h>
+#include <build_options.h>
+
+#ifdef IS_LIBUSB_ENABLED
+#    include <communications/libusb/communication_libusb.h>
+#endif
+
+#ifdef IS_ETHERNET_ENABLED
+#    include <communications/ethernet/communication_ethernet.h>
+#endif
+
 #include <kommpot_core.h>
 
 #include <cstdint>
@@ -137,16 +145,20 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
     /**
      * @brief libusb devices.
      */
+#ifdef IS_LIBUSB_ENABLED
     auto libusb_devices = communication_libusb::devices(identifications);
     device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(libusb_devices)),
         std::make_move_iterator(std::end(libusb_devices)));
+#endif
 
     /**
      * @brief ethernet devices.
      */
+#ifdef IS_ETHERNET_ENABLED
     auto ethernet_devices = communication_ethernet::devices(identifications);
     device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(ethernet_devices)),
         std::make_move_iterator(std::end(ethernet_devices)));
+#endif
 
     return device_list;
 }
