@@ -1,6 +1,6 @@
 #include "communication_libusb.h"
 
-#include "communication_libftdi.h"
+#include "communications/libftdi/communication_libftdi.h"
 #include "kommpot_core.h"
 #include "libkommpot.h"
 #include "third-party/libusb-cmake/libusb/libusb/libusb.h"
