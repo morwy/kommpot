@@ -18,7 +18,7 @@ endif()
 #
 option(IS_LIBUSB_ENABLED "Enable libusb library" ON)
 option(IS_LIBFTDI_ENABLED "Enable libftdi library" OFF)
-option(IS_ETHERNET_ENABLED "Enable Ethernet library" ON)
+option(IS_ETHERNET_ENABLED "Enable Ethernet library" OFF)
 
 if (NOT IS_LIBUSB_ENABLED AND NOT IS_LIBFTDI_ENABLED AND NOT IS_ETHERNET_ENABLED)
     message(FATAL_ERROR "At least one of the communication libraries (libusb, libftdi, Ethernet) must be enabled.")
