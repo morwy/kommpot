@@ -16,11 +16,26 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../third-party/spdlog/include/)
 #
 # Add source files recursively.
 #
-set(FILE_EXTENSIONS *.h *.hpp *.c *.cpp)
-foreach(FILE_EXTENSION IN LISTS FILE_EXTENSIONS)
-    file (GLOB_RECURSE FOUND_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_EXTENSION})
-    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${FOUND_FILES})
-endforeach()
+set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/include/export_definitions.h)
+set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/include/libkommpot.h)
+
+set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/libkommpot.cpp)
+set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/kommpot_core.h)
+set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/kommpot_core.cpp)
+
+if(IS_LIBUSB_ENABLED)
+    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communication_libusb.h)
+    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communication_libusb.cpp)
+endif()
+
+if(IS_LIBFTDI_ENABLED)
+    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communication_libftdi.h)
+    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communication_libftdi.cpp)
+endif()
+
+if(IS_ETHERNET_ENABLED)
+    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communications/ethernet/*)
+endif()
 
 if(IS_COMPILING_SHARED)
     set(LIBRARY_TYPE SHARED)

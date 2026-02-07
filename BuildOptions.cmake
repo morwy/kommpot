@@ -6,8 +6,8 @@ option(IS_TESTING_ENABLED "Enable testing" OFF)
 #
 # Compilation type.
 #
-option(IS_COMPILING_STATIC "Enable libusb library" OFF)
-option(IS_COMPILING_SHARED "Enable libusb library" ON)
+option(IS_COMPILING_STATIC "Enable static library compilation" OFF)
+option(IS_COMPILING_SHARED "Enable shared library compilation" ON)
 
 #
 # Libraries. They are injected into the code as preprocessor definitions in build_options.h.
