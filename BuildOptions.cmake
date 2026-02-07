@@ -9,12 +9,20 @@ option(IS_TESTING_ENABLED "Enable testing" OFF)
 option(IS_COMPILING_STATIC "Enable static library compilation" OFF)
 option(IS_COMPILING_SHARED "Enable shared library compilation" ON)
 
+if (NOT IS_COMPILING_STATIC AND NOT IS_COMPILING_SHARED)
+    message(FATAL_ERROR "At least one of the library types (static or shared) must be enabled.")
+endif()
+
 #
 # Libraries. They are injected into the code as preprocessor definitions in build_options.h.
 #
 option(IS_LIBUSB_ENABLED "Enable libusb library" ON)
-option(IS_LIBFTDI_ENABLED "Enable libftdi library" ON)
+option(IS_LIBFTDI_ENABLED "Enable libftdi library" OFF)
 option(IS_ETHERNET_ENABLED "Enable Ethernet library" ON)
+
+if (NOT IS_LIBUSB_ENABLED AND NOT IS_LIBFTDI_ENABLED AND NOT IS_ETHERNET_ENABLED)
+    message(FATAL_ERROR "At least one of the communication libraries (libusb, libftdi, Ethernet) must be enabled.")
+endif()
 
 #
 # Log.

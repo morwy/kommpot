@@ -34,8 +34,15 @@ if(IS_LIBFTDI_ENABLED)
 endif()
 
 if(IS_ETHERNET_ENABLED)
-    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communications/ethernet/*)
+    file(GLOB ETHERNET_FILES ${PROJECT_FOLDER_FILES} ${CMAKE_CURRENT_LIST_DIR}/sources/communications/ethernet/*)
+    set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${ETHERNET_FILES})
 endif()
+
+message("Source files for ${PROJECT_NAME}:")
+foreach (SOURCE_FILE IN LISTS PROJECT_FOLDER_FILES)
+    message("  - ${SOURCE_FILE}")
+endforeach()
+message("")
 
 if(IS_COMPILING_SHARED)
     set(LIBRARY_TYPE SHARED)
