@@ -17,8 +17,8 @@ endif()
 # Libraries. They are injected into the code as preprocessor definitions in build_options.h.
 #
 option(IS_LIBUSB_ENABLED "Enable libusb library" ON)
-option(IS_LIBFTDI_ENABLED "Enable libftdi library" ON)
-option(IS_ETHERNET_ENABLED "Enable Ethernet library" OFF)
+option(IS_LIBFTDI_ENABLED "Enable libftdi library" OFF)
+option(IS_ETHERNET_ENABLED "Enable Ethernet library" ON)
 
 if (NOT IS_LIBUSB_ENABLED AND NOT IS_LIBFTDI_ENABLED AND NOT IS_ETHERNET_ENABLED)
     message(FATAL_ERROR "At least one of the communication libraries (libusb, libftdi, Ethernet) must be enabled.")
