@@ -3,12 +3,12 @@
 #include <build_options.h>
 
 #ifdef IS_LIBUSB_ENABLED
-#include <communication_libusb.h>
+#    include <communications/libusb/communication_libusb.h>
 #endif
 
 #ifdef IS_ETHERNET_ENABLED
-#include <communications/ethernet/communication_ethernet.h>
-#include <communications/ethernet/ethernet_context.h>
+#    include <communications/ethernet/communication_ethernet.h>
+#    include <communications/ethernet/ethernet_context.h>
 #endif
 
 #include <spdlog/async.h>
@@ -81,7 +81,6 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
         {
             status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
         }
-
 
 #ifdef IS_LIBUSB_ENABLED
         auto libusb_devices = communication_libusb::devices(identifications);

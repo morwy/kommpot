@@ -2,13 +2,12 @@
 
 #include <build_options.h>
 
-
 #ifdef IS_LIBUSB_ENABLED
-#include <communication_libusb.h>
+#    include <communications/libusb/communication_libusb.h>
 #endif
 
 #ifdef IS_ETHERNET_ENABLED
-#include <communications/ethernet/communication_ethernet.h>
+#    include <communications/ethernet/communication_ethernet.h>
 #endif
 
 #include <kommpot_core.h>
