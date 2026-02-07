@@ -1,5 +1,7 @@
 #include <kommpot_core.h>
 
+#include <build_options.h>
+
 #include <communication_libusb.h>
 #include <communications/ethernet/communication_ethernet.h>
 #include <communications/ethernet/ethernet_context.h>
@@ -73,10 +75,13 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
             status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
         }
 
+
+#ifdef IS_LIBUSB_ENABLED
         auto libusb_devices = communication_libusb::devices(identifications);
         device_list.insert(std::end(device_list),
             std::make_move_iterator(std::begin(libusb_devices)),
             std::make_move_iterator(std::end(libusb_devices)));
+#endif
 
         if (device_cb)
         {
@@ -91,10 +96,12 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
             status_cb(kommpot::enumeration_status::ENUMERATING_ETHERNET_DEVICES);
         }
 
+#ifdef IS_ETHERNET_ENABLED
         auto ethernet_devices = communication_ethernet::devices(identifications);
         device_list.insert(std::end(device_list),
             std::make_move_iterator(std::begin(ethernet_devices)),
             std::make_move_iterator(std::end(ethernet_devices)));
+#endif
 
         if (device_cb)
         {
