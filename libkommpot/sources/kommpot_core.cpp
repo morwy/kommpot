@@ -2,9 +2,14 @@
 
 #include <build_options.h>
 
+#ifdef IS_LIBUSB_ENABLED
 #include <communication_libusb.h>
+#endif
+
+#ifdef IS_ETHERNET_ENABLED
 #include <communications/ethernet/communication_ethernet.h>
 #include <communications/ethernet/ethernet_context.h>
+#endif
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/callback_sink.h>
@@ -31,7 +36,9 @@ auto kommpot_core::initialize() -> bool
 
 auto kommpot_core::deinitialize() -> bool
 {
+#ifdef IS_ETHERNET_ENABLED
     ethernet_context::instance().deinitialize();
+#endif
 
     if (m_future.valid())
     {
