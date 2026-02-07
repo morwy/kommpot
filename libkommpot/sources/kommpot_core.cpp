@@ -1,4 +1,8 @@
-#include "kommpot_core.h"
+#include <kommpot_core.h>
+
+#include <communication_libusb.h>
+#include <communications/ethernet/communication_ethernet.h>
+#include <communications/ethernet/ethernet_context.h>
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/callback_sink.h>
@@ -25,6 +29,13 @@ auto kommpot_core::initialize() -> bool
 
 auto kommpot_core::deinitialize() -> bool
 {
+    ethernet_context::instance().deinitialize();
+
+    if (m_future.valid())
+    {
+        m_future.wait();
+    }
+
     deinitialize_logger();
     return true;
 }
@@ -46,6 +57,55 @@ auto kommpot_core::set_settings(const kommpot::settings_structure &settings) noe
     {
         initialize_logger();
     }
+}
+
+auto kommpot_core::devices(const std::vector<kommpot::device_identification> &identifications,
+    kommpot::device_callback device_cb, kommpot::status_callback status_cb) -> void
+{
+    m_future = std::async(std::launch::async, [=]() mutable {
+        std::vector<std::shared_ptr<kommpot::device_communication>> device_list;
+
+        /**
+         * @brief libusb devices.
+         */
+        if (status_cb)
+        {
+            status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
+        }
+
+        auto libusb_devices = communication_libusb::devices(identifications);
+        device_list.insert(std::end(device_list),
+            std::make_move_iterator(std::begin(libusb_devices)),
+            std::make_move_iterator(std::end(libusb_devices)));
+
+        if (device_cb)
+        {
+            device_cb(device_list);
+        }
+
+        /**
+         * @brief ethernet devices.
+         */
+        if (status_cb)
+        {
+            status_cb(kommpot::enumeration_status::ENUMERATING_ETHERNET_DEVICES);
+        }
+
+        auto ethernet_devices = communication_ethernet::devices(identifications);
+        device_list.insert(std::end(device_list),
+            std::make_move_iterator(std::begin(ethernet_devices)),
+            std::make_move_iterator(std::end(ethernet_devices)));
+
+        if (device_cb)
+        {
+            device_cb(device_list);
+        }
+
+        if (status_cb)
+        {
+            status_cb(kommpot::enumeration_status::COMPLETED);
+        }
+    });
 }
 
 auto kommpot_core::initialize_logger() -> void

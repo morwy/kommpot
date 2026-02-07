@@ -128,7 +128,8 @@ enum class endpoint_type : uint8_t
 {
     UNKNOWN = 0,
     INPUT = 1,
-    OUTPUT = 2
+    OUTPUT = 2,
+    DUPLEX = 3
 };
 
 /**
@@ -172,7 +173,8 @@ enum class communication_type
 {
     UNKNOWN = 0,
     LIBUSB = 1,
-    LIBFTDI = 2
+    LIBFTDI = 2,
+    ETHERNET = 3
 };
 
 /**
@@ -193,19 +195,6 @@ struct communication_configuration
     uint8_t bit_mask = 0;
 };
 
-/**
- * @brief describes parameters of device communication.
- */
-struct communication_information
-{
-    std::string name = "";
-    std::string manufacturer = "";
-    std::string serial_number = "";
-    std::string port = "";
-    uint16_t vendor_id = 0x0000;
-    uint16_t product_id = 0x0000;
-};
-
 struct communication_error
 {
     uint32_t code = 0;
@@ -215,8 +204,14 @@ struct communication_error
 /**
  * @brief describes any identification parameters of device.
  */
-struct device_identification
+struct usb_device_identification
 {
+    /**
+     * @category general identification parameters.
+     */
+    std::string name = "";
+    std::string manufacturer = "";
+
     /**
      * @category general identification parameters.
      * @warning unreliable for unique detection, some devices may have identical serial numbers.
@@ -231,15 +226,56 @@ struct device_identification
     uint16_t product_id = 0x0000;
 
     /**
+     * @category USB identification parameters.
      * reliable for unique detection.
      */
     std::string port = "";
 };
 
+enum class ethernet_protocol_type
+{
+    UNKNOWN = 0,
+    TCP = 1,
+    UDP = 2,
+};
+
+/**
+ * @brief gets ethernet_protocol_type as string.
+ * @return ethernet_protocol_type as string.
+ */
+auto EXPORTED ethernet_protocol_type_to_string(const ethernet_protocol_type &type) noexcept
+    -> std::string;
+
+struct ethernet_device_identification
+{
+    /**
+     * @category general identification parameters.
+     * @attention wildcards are supported.
+     */
+    std::string name = "*";
+
+    /**
+     * @category IP identification parameters.
+     * @attention wildcards are supported.
+     */
+    std::string ip = "*";
+
+    /**
+     * @attention wildcards are supported.
+     */
+    std::string mac = "*";
+
+    ethernet_protocol_type protocol = ethernet_protocol_type::UNKNOWN;
+    uint16_t port = 0;
+};
+
+using device_identification =
+    std::variant<usb_device_identification, ethernet_device_identification>;
+
 class EXPORTED device_communication
 {
 public:
-    explicit device_communication(communication_information information);
+    explicit device_communication(device_identification identification);
     virtual ~device_communication() = default;
 
     /**
@@ -276,13 +312,13 @@ public:
     }
 
     /**
-     * @brief returns current device_communication object information.
-     * @return information as communication_information structure.
-     * {@link communication_information communication_information}
+     * @brief returns current device_communication object identification.
+     * @return identification as device_identification structure.
+     * {@link device_identification device_identification}
      */
-    [[nodiscard]] virtual auto information() const -> communication_information
+    [[nodiscard]] virtual auto identification() const -> device_identification
     {
-        return m_information;
+        return m_identification_variant;
     }
 
     /**
@@ -352,18 +388,51 @@ protected:
     bool m_is_custom_configuration_set = false;
     communication_configuration m_configuration;
     communication_type m_type = communication_type::UNKNOWN;
-    communication_information m_information;
+    device_identification m_identification_variant;
 };
 
 /**
- * Provides list of devices according to specified device_id.
+ * Provides list of devices according to specified identifications.
  * Returns all devices if device_id is not specified.
+ * @attention blocking call.
  *
- * @param device_id.
+ * @param identifications.
  * @return std::vector of devices.
  */
 auto EXPORTED devices(const std::vector<device_identification> &identifications = {})
     -> std::vector<std::shared_ptr<kommpot::device_communication>>;
+
+/**
+ * Provides list of devices according to specified identifications.
+ * Returns all devices if device_id is not specified.
+ * @attention non-blocking call.
+ *
+ * @param identifications.
+ * @return std::vector of devices.
+ */
+enum class enumeration_status
+{
+    UNKNOWN = 0,
+    ENUMERATING_USB_DEVICES = 1,
+    ENUMERATING_ETHERNET_DEVICES = 2,
+    COMPLETED = 3
+};
+
+/**
+ * @brief converts enumeration_status to a readable string value.
+ * @param status of enumeration.
+ * @return string.
+ */
+auto EXPORTED enumeration_status_to_string(const enumeration_status &status) noexcept
+    -> std::string;
+
+using device_callback =
+    std::function<void(std::vector<std::shared_ptr<kommpot::device_communication>>)>;
+using status_callback = std::function<void(kommpot::enumeration_status)>;
+
+auto EXPORTED devices(const std::vector<device_identification> &identifications,
+    device_callback device_cb, status_callback status_cb) -> void;
+
 } // namespace kommpot
 
 #endif // LIBKOMMPOT_H

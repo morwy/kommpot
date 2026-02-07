@@ -1,6 +1,7 @@
 #include "libkommpot.h"
 
 #include <communication_libusb.h>
+#include <communications/ethernet/communication_ethernet.h>
 #include <kommpot_core.h>
 
 #include <cstdint>
@@ -91,13 +92,36 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     case communication_type::LIBFTDI: {
         return "libftdi";
     }
+    case communication_type::ETHERNET: {
+        return "ethernet";
+    }
+    default: {
+        return "";
+    }
+    }
+}
+
+auto kommpot::ethernet_protocol_type_to_string(const ethernet_protocol_type &type) noexcept
+    -> std::string
+{
+    switch (type)
+    {
+    case ethernet_protocol_type::UNKNOWN: {
+        return "UNKNOWN";
+    }
+    case ethernet_protocol_type::TCP: {
+        return "TCP";
+    }
+    case ethernet_protocol_type::UDP: {
+        return "UDP";
+    }
     default:
         return "";
     }
 }
 
-kommpot::device_communication::device_communication(communication_information information)
-    : m_information(std::move(information))
+kommpot::device_communication::device_communication(kommpot::device_identification identification)
+    : m_identification_variant(std::move(identification))
 {}
 
 auto kommpot::device_communication::type() const -> kommpot::communication_type
@@ -117,5 +141,40 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
     device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(libusb_devices)),
         std::make_move_iterator(std::end(libusb_devices)));
 
+    /**
+     * @brief ethernet devices.
+     */
+    auto ethernet_devices = communication_ethernet::devices(identifications);
+    device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(ethernet_devices)),
+        std::make_move_iterator(std::end(ethernet_devices)));
+
     return device_list;
+}
+
+auto kommpot::devices(const std::vector<device_identification> &identifications,
+    device_callback device_cb, status_callback status_cb) -> void
+{
+    kommpot_core::instance().devices(identifications, device_cb, status_cb);
+}
+
+auto kommpot::enumeration_status_to_string(const enumeration_status &status) noexcept -> std::string
+{
+    switch (status)
+    {
+    case enumeration_status::UNKNOWN: {
+        return "Unknown";
+    }
+    case enumeration_status::ENUMERATING_USB_DEVICES: {
+        return "Enumerating USB devices";
+    }
+    case enumeration_status::ENUMERATING_ETHERNET_DEVICES: {
+        return "Enumerating Ethernet devices";
+    }
+    case enumeration_status::COMPLETED: {
+        return "Completed";
+    }
+    default: {
+        return "";
+    }
+    }
 }

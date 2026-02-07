@@ -16,7 +16,7 @@
 class communication_libusb : public kommpot::device_communication
 {
 public:
-    explicit communication_libusb(const kommpot::communication_information &information);
+    explicit communication_libusb(const kommpot::usb_device_identification &identification);
     ~communication_libusb() override;
 
     static auto devices(const std::vector<kommpot::device_identification> &identifications)
@@ -39,6 +39,7 @@ public:
     [[nodiscard]] auto native_handle() const -> void * override;
 
 private:
+    kommpot::usb_device_identification m_identification;
     static libusb_context *m_libusb_context;
     libusb_device_handle *m_device_handle = nullptr;
     static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;

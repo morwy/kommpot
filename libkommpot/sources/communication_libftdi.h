@@ -19,7 +19,7 @@ class communication_libftdi : public kommpot::device_communication
 public:
     static constexpr uint32_t VENDOR_ID = 0x0403;
 
-    explicit communication_libftdi(const kommpot::communication_information &information);
+    explicit communication_libftdi(const kommpot::usb_device_identification &identification);
     ~communication_libftdi() override;
 
     static auto devices(const std::vector<kommpot::device_identification> &identifications)
@@ -42,6 +42,7 @@ public:
     [[nodiscard]] auto native_handle() const -> void * override;
 
 private:
+    kommpot::usb_device_identification m_identification;
     static ftdi_context *m_ftdi_context;
     bool m_is_device_opened = false;
     static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;
