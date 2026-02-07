@@ -10,7 +10,7 @@ if(NOT DEFINED CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-message("Determined build options:")
+message("Determined kommpot build definitions:")
 
 #
 # Operational system macro.

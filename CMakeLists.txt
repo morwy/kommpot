@@ -70,22 +70,6 @@ message("Creating ${BINARY_OUTPUT_PATH} build directory.")
 file(MAKE_DIRECTORY ${BINARY_OUTPUT_PATH})
 
 #
-# Define compilation settings.
-#
-if(NOT DEFINED IS_COMPILING_STATIC AND NOT DEFINED IS_COMPILING_SHARED)
-    set(IS_COMPILING_STATIC false)
-    set(IS_COMPILING_SHARED true)
-endif()
-
-if(NOT DEFINED IS_COMPILING_LIBUSB)
-    set(IS_COMPILING_LIBUSB true)
-endif()
-
-if(NOT DEFINED IS_COMPILING_LIBFTDI)
-    set(IS_COMPILING_LIBFTDI true)
-endif()
-
-#
 # Add dependencies.
 # Create list of built dependencies and their include directories.
 #
@@ -108,8 +92,9 @@ if(PLATFORM_OS_MACOS)
     endif()
 endif()
 
-message("Compiling following ${COMPILATION_TYPE} dependencies:")
-
+#
+# Dependency configuration.
+#
 set(KOMMPOT_LIBRARIES "")
 set(KOMMPOT_DEPENDENCIES kommpot)
 
@@ -134,7 +119,9 @@ else()
     endif()
 endif()
 
-if(IS_COMPILING_LIBUSB)
+if(IS_LIBUSB_ENABLED)
+    message("Including libusb dependency.")
+
     if(IS_COMPILING_SHARED)
         set(LIBUSB_BUILD_SHARED_LIBS true)
     endif()
@@ -168,13 +155,14 @@ if(IS_COMPILING_LIBUSB)
         endif()
     endif()
 
-    message("  - libusb")
     configure_file(${PROJECT_ROOT_PATH}/third-party/libusb-cmake/libusb/libusb/libusb.h ${INCLUDE_OUTPUT_PATH} COPYONLY)
     add_subdirectory(third-party/libusb-cmake)
 endif()
 
-if(IS_COMPILING_LIBFTDI)
-    if(NOT IS_COMPILING_LIBUSB)
+if(IS_LIBFTDI_ENABLED)
+    message("Including libftdi dependency.")
+
+    if(NOT IS_LIBUSB_ENABLED)
         message(FATAL_ERROR "libusb is required for libftdi!")
     endif()
 
@@ -200,7 +188,6 @@ if(IS_COMPILING_LIBFTDI)
         endif()
     endif()
 
-    message("  - libftdi")
     configure_file(${PROJECT_ROOT_PATH}/third-party/libftdi/src/ftdi.h ${INCLUDE_OUTPUT_PATH} COPYONLY)
     add_subdirectory(third-party/libftdi)
 endif()
