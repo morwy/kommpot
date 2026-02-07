@@ -23,9 +23,9 @@ include(ProjectVersion.cmake)
 include(ConvenienceDefinitions.cmake)
 
 #
-# Tests.
+# Build control options.
 #
-option(KOMMPOT_ENABLE_TESTING "Enable testing" OFF)
+include(BuildOptions.cmake)
 
 #
 # Set output folder for binaries.
@@ -243,7 +243,7 @@ add_subdirectory(libkommpot)
 #
 # Add tests.
 #
-if(KOMMPOT_ENABLE_TESTING)
+if(IS_TESTING_ENABLED)
     enable_testing()
     add_subdirectory(tests)
 endif()

@@ -1,0 +1,6 @@
+#pragma once
+
+#cmakedefine IS_TESTING_ENABLED
+#cmakedefine IS_LIBUSB_ENABLED
+#cmakedefine IS_LIBFTDI_ENABLED
+#cmakedefine IS_ETHERNET_ENABLED
