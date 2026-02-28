@@ -461,6 +461,8 @@ bool communication_libusb::transfer(
 
                 return true;
             }
+
+            return false;
         },
         configuration);
 
