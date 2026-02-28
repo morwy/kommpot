@@ -164,8 +164,27 @@ namespace kommpot {
         uint8_t endpoint = 0;
     };
 
+    /**
+     * @brief states types of endpoint.
+     */
+    enum class http_transfer_type : uint8_t
+    {
+        UNKNOWN = 0,
+        GET = 1,
+        POST = 2,
+        PUT = 3,
+        PATCH = 4,
+        DELETE = 5
+    };
+
+    struct http_transfer_configuration
+    {
+        http_transfer_type type = http_transfer_type::UNKNOWN;
+        std::string resource_path = "";
+    };
+
     using transfer_configuration = std::variant<bulk_transfer_configuration,
-        control_transfer_configuration, interrupt_transfer_configuration>;
+        control_transfer_configuration, interrupt_transfer_configuration, std::string>;
 
     /**
      * @brief states types of communications.
@@ -175,7 +194,8 @@ namespace kommpot {
         UNKNOWN = 0,
         LIBUSB = 1,
         LIBFTDI = 2,
-        ETHERNET = 3
+        ETHERNET = 3,
+        HTTP = 4
     };
 
     /**
@@ -271,8 +291,19 @@ namespace kommpot {
         uint16_t port = 0;
     };
 
-    using device_identification =
-        std::variant<usb_device_identification, ethernet_device_identification>;
+    struct http_device_identification
+    {
+        /**
+         * @category address identification parameters. It can be either URL or IP address.
+         * @attention wildcards are supported.
+         */
+        std::string address = "*";
+
+        uint16_t port = 0;
+    };
+
+    using device_identification = std::variant<usb_device_identification,
+        ethernet_device_identification, http_device_identification>;
 
     class EXPORTED device_communication
     {

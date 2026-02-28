@@ -103,6 +103,9 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     case communication_type::ETHERNET: {
         return "ethernet";
     }
+    case communication_type::HTTP: {
+        return "http";
+    }
     default: {
         return "";
     }

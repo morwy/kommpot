@@ -17,6 +17,7 @@ CTestTestfile.cmake
 *ConfigVersion.cmake
 third-party/libftdi/src/ftdi_version_i.h
 third-party/libusb-cmake/gen_include/config.h
+third-party/libusb-cmake/libusb-config-version.cmake
 build_options.h
 
 # VS folders
