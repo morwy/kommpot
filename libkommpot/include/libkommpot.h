@@ -174,7 +174,11 @@ namespace kommpot {
         POST = 2,
         PUT = 3,
         PATCH = 4,
-        DELETE = 5
+
+        /**
+         * DELETE is a keyword, so we cannot use it as enum value. Thus, extra _E in the name.
+         */
+        DELETE_E = 5
     };
 
     struct http_transfer_configuration
@@ -183,8 +187,9 @@ namespace kommpot {
         std::string resource_path = "";
     };
 
-    using transfer_configuration = std::variant<bulk_transfer_configuration,
-        control_transfer_configuration, interrupt_transfer_configuration, std::string>;
+    using transfer_configuration =
+        std::variant<bulk_transfer_configuration, control_transfer_configuration,
+            interrupt_transfer_configuration, http_transfer_configuration>;
 
     /**
      * @brief states types of communications.
