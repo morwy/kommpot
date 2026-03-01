@@ -1,4 +1,5 @@
 #include "libkommpot.h"
+#include "communications/http/communication_http.h"
 
 #include <build_options.h>
 
@@ -138,6 +139,35 @@ kommpot::device_communication::device_communication(kommpot::device_identificati
 auto kommpot::device_communication::type() const -> kommpot::communication_type
 {
     return m_type;
+}
+
+auto kommpot::device(const device_identification &identification)
+    -> std::shared_ptr<kommpot::device_communication>
+{
+    auto result = std::visit(
+        [&](const auto &s) -> std::shared_ptr<kommpot::device_communication> {
+            if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                              kommpot::usb_device_identification>)
+            {
+                return std::make_shared<communication_libusb>(s);
+            }
+            else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                                   kommpot::ethernet_device_identification>)
+            {
+                return std::make_shared<communication_ethernet>(s);
+            }
+
+            else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                                   kommpot::http_device_identification>)
+            {
+                return std::make_shared<communication_http>(s);
+            }
+
+            return nullptr;
+        },
+        identification);
+
+    return result;
 }
 
 auto kommpot::devices(const std::vector<device_identification> &identifications)

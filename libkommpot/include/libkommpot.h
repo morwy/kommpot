@@ -185,6 +185,9 @@ namespace kommpot {
     {
         http_transfer_type type = http_transfer_type::UNKNOWN;
         std::string resource_path = "";
+        std::string headers = "";
+        std::string body = "";
+        std::string content_type = "";
     };
 
     using transfer_configuration =
@@ -428,6 +431,17 @@ namespace kommpot {
         communication_type m_type = communication_type::UNKNOWN;
         device_identification m_identification_variant;
     };
+
+    /**
+     * Provides device according to specified identification.
+     * Returns nullptr if no device was found.
+     * @attention blocking call.
+     *
+     * @param identification.
+     * @return device or nullptr.
+     */
+    auto EXPORTED device(const device_identification &identification = {})
+        -> std::shared_ptr<kommpot::device_communication>;
 
     /**
      * Provides list of devices according to specified identifications.

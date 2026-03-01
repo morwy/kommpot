@@ -50,7 +50,17 @@ auto communication_http::is_open() -> bool
         return false;
     }
 
-    return m_connection->is_valid() && m_connection->is_socket_open();
+    if (!m_connection->is_valid())
+    {
+        return false;
+    }
+
+    // if (!m_connection->is_socket_open())
+    // {
+    //     return false;
+    // }
+
+    return true;
 }
 
 auto communication_http::close() -> void
@@ -98,6 +108,8 @@ auto communication_http::read(
             KOMMPOT_LOGGER, "Connection is not established, cannot perform read operation.");
         return false;
     }
+
+    m_connection->set_keep_alive(true);
 
     auto result = std::visit(
         [&](const auto &s) {
@@ -164,7 +176,10 @@ auto communication_http::write(
         return false;
     }
 
-    const auto data_str = std::string(static_cast<char *>(data), size_bytes);
+    httplib::Headers headers{
+        {"Accept-Encoding", "identity"},
+        {"Connection", "Keep-Alive"}
+    };
 
     auto result = std::visit(
         [&](const auto &s) {
@@ -181,8 +196,7 @@ auto communication_http::write(
                 switch (s.type)
                 {
                 case kommpot::http_transfer_type::PATCH: {
-                    auto result =
-                        m_connection->Patch(s.resource_path, data_str, std::string(), nullptr);
+                    auto result = m_connection->Patch(s.resource_path, headers, s.body, s.content_type);
                     if (result->status < 200 || result->status >= 300)
                     {
                         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
@@ -194,21 +208,28 @@ auto communication_http::write(
                     return true;
                 }
                 case kommpot::http_transfer_type::POST: {
-                    auto result =
-                        m_connection->Post(s.resource_path, data_str, std::string(), nullptr);
-                    if (result->status < 200 || result->status >= 300)
+                    if (auto result = m_connection->Post(s.resource_path, headers, s.body, s.content_type))
                     {
+                        if (result->status < 200 || result->status >= 300)
+                        {
+                            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                                "HTTP POST request failed with status code {} [{}]", result->status,
+                                result->status);
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        auto err = result.error();
                         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-                            "HTTP POST request failed with status code {} [{}]", result->status,
-                            result->status);
+                            "HTTP POST request failed with error '{}'", httplib::to_string(err));
                         return false;
                     }
 
                     return true;
                 }
                 case kommpot::http_transfer_type::PUT: {
-                    auto result =
-                        m_connection->Put(s.resource_path, data_str, std::string(), nullptr);
+                    auto result = m_connection->Put(s.resource_path, headers, s.body, s.content_type);
                     if (result->status < 200 || result->status >= 300)
                     {
                         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
@@ -220,8 +241,7 @@ auto communication_http::write(
                     return true;
                 }
                 case kommpot::http_transfer_type::DELETE_E: {
-                    auto result =
-                        m_connection->Delete(s.resource_path, data_str, std::string(), nullptr);
+                    auto result = m_connection->Delete(s.resource_path, headers, s.body, s.content_type);
                     if (result->status < 200 || result->status >= 300)
                     {
                         SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
