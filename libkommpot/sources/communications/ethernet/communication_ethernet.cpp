@@ -727,6 +727,7 @@ auto communication_ethernet::is_host_reachable(
     information.ip = ip_address->to_string();
     information.mac = socket.mac_address().to_string();
     information.port = port;
+    information.protocol = protocol;
 
     if (!socket.disconnect())
     {
