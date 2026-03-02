@@ -405,45 +405,69 @@ auto communication_ethernet::get_all_interfaces()
         interface.ipv4.mask_prefix = ipv4_prefix_length;
         interface.ipv6.mask_prefix = ipv6_prefix_length;
 
-        if (!ethernet_address_factory::calculate_mask(
-                interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.mask))
+        is_valid_ipv4 = ethernet_address_factory::calculate_mask(
+            interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.mask);
+        if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 mask.");
-            continue;
         }
 
-        if (!ethernet_address_factory::calculate_mask(
-                interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.mask))
+        is_valid_ipv6 = ethernet_address_factory::calculate_mask(
+            interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.mask);
+        if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 mask.");
+        }
+
+        if (!is_valid_ipv4 && !is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Failed to calculate both IPv4 and IPv6 masks from sockaddr_in: {}",
+                friendly_name_str);
             continue;
         }
 
-        if (!ethernet_address_factory::calculate_base_address(
-                interface.ipv4.address, interface.ipv4.mask, interface.ipv4.base_address))
+        is_valid_ipv4 = ethernet_address_factory::calculate_base_address(
+            interface.ipv4.address, interface.ipv4.mask, interface.ipv4.base_address);
+        if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 base address.");
-            continue;
         }
 
-        if (!ethernet_address_factory::calculate_base_address(
-                interface.ipv6.address, interface.ipv6.mask, interface.ipv6.base_address))
+        is_valid_ipv6 = ethernet_address_factory::calculate_base_address(
+            interface.ipv6.address, interface.ipv6.mask, interface.ipv6.base_address);
+        if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 base address.");
+        }
+
+        if (!is_valid_ipv4 && !is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Failed to calculate both IPv4 and IPv6 base addresses from sockaddr_in: {}",
+                friendly_name_str);
             continue;
         }
 
-        if (!ethernet_address_factory::calculate_max_hosts(
-                interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.max_hosts))
+        is_valid_ipv4 = ethernet_address_factory::calculate_max_hosts(
+            interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.max_hosts);
+        if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 max hosts.");
-            continue;
         }
 
-        if (!ethernet_address_factory::calculate_max_hosts(
-                interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.max_hosts))
+        is_valid_ipv6 = ethernet_address_factory::calculate_max_hosts(
+            interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.max_hosts);
+        if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 max hosts.");
+        }
+
+        if (!is_valid_ipv4 && !is_valid_ipv6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Failed to calculate both IPv4 and IPv6 max hosts from sockaddr_in: {}",
+                friendly_name_str);
             continue;
         }
 
