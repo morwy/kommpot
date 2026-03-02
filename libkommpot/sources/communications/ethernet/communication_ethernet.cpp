@@ -745,8 +745,8 @@ auto communication_ethernet::is_host_suitable(
     const bool is_name_match = is_wildcard_match(search_id.name, host_id.name);
     if (!is_name_match)
     {
-        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host '{}' does not match search name '{}'!",
-            host_id.name, search_id.name);
+        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host {}/'{}' does not match search name '{}'!",
+            host_id.ip, host_id.name, search_id.name);
         return false;
     }
 
@@ -767,8 +767,8 @@ auto communication_ethernet::is_host_suitable(
     const bool is_mac_match = is_wildcard_match(search_id.mac, host_id.mac);
     if (!is_mac_match)
     {
-        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host '{}' does not match search MAC '{}'!",
-            host_id.mac, search_id.mac);
+        SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Host {}/'{}' does not match search MAC '{}'!",
+            host_id.ip, host_id.mac, search_id.mac);
         return false;
     }
 
