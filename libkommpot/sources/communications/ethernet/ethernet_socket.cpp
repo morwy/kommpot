@@ -191,13 +191,27 @@ auto ethernet_socket::read(void *data, size_t size_bytes) const -> const bool
         return false;
     }
 
-    const auto bytes_received = recv(m_handle, static_cast<char *>(data), size_bytes, 0);
-    if (bytes_received == ETH_SOCKET_ERROR)
+    size_t bytes_received = 0;
+    while (bytes_received < size_bytes)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to read data due to error: {}.",
-            static_cast<const void *>(this), to_string(),
-            ethernet_tools::get_last_error_code_as_string());
-        return false;
+        const auto result = recv(
+            m_handle, static_cast<char *>(data) + bytes_received, size_bytes - bytes_received, 0);
+        if (result == ETH_SOCKET_ERROR)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to read data due to error: {}.",
+                static_cast<const void *>(this), to_string(),
+                ethernet_tools::get_last_error_code_as_string());
+            return false;
+        }
+        else if (result == 0)
+        {
+            SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: connection closed by peer.",
+                static_cast<const void *>(this), to_string());
+            return false;
+        }
+
+        bytes_received += result;
     }
 
     return true;
@@ -227,14 +241,21 @@ auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
         return false;
     }
 
-    const auto bytes_sent = send(m_handle, static_cast<const char *>(data), size_bytes, 0);
-    if (bytes_sent == ETH_SOCKET_ERROR)
+    size_t bytes_sent = 0;
+    while (bytes_sent < size_bytes)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-            "Socket {} / {}: failed to write data due to error: {}.",
-            static_cast<const void *>(this), to_string(),
-            ethernet_tools::get_last_error_code_as_string());
-        return false;
+        const auto result = send(
+            m_handle, static_cast<const char *>(data) + bytes_sent, size_bytes - bytes_sent, 0);
+        if (result == ETH_SOCKET_ERROR)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to write data due to error: {}.",
+                static_cast<const void *>(this), to_string(),
+                ethernet_tools::get_last_error_code_as_string());
+            return false;
+        }
+
+        bytes_sent += result;
     }
 
     return true;
