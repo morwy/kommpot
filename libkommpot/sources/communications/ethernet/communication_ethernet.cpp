@@ -149,6 +149,11 @@ auto communication_ethernet::open() -> bool
         return false;
     }
 
+    if (!m_socket.set_timeout(M_TRANSFER_TIMEOUT_MSEC))
+    {
+        return false;
+    }
+
     return m_socket.connect();
 }
 
