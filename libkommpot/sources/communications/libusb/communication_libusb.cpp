@@ -461,6 +461,11 @@ bool communication_libusb::transfer(
 
                 return true;
             }
+
+            SPDLOG_LOGGER_ERROR(
+                KOMMPOT_LOGGER, "Unsupported transfer configuration type provided.");
+
+            return false;
         },
         configuration);
 
