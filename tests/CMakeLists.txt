@@ -24,12 +24,12 @@ foreach(FILE_EXTENSION IN LISTS FILE_EXTENSIONS)
     set(PROJECT_FOLDER_FILES ${PROJECT_FOLDER_FILES} ${FOUND_FILES})
 endforeach()
 
-add_executable(${PROJECT_NAME} ${TEST_FOLDER_FILES} ${PROJECT_FOLDER_FILES} ${GOOGLETEST_FILES})
+add_executable(${PROJECT_NAME} ${TEST_FOLDER_FILES} ${PROJECT_FOLDER_FILES})
 
 #
 # Link with kommpot dependencies.
 #
-target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${KOMMPOT_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads GTest::gtest GTest::gmock ${KOMMPOT_LIBRARIES})
 foreach (KOMMPOT_DEPENDENCY IN LISTS KOMMPOT_DEPENDENCIES)
     add_dependencies(${PROJECT_NAME} ${KOMMPOT_DEPENDENCY})
 endforeach()
