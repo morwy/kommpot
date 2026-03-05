@@ -309,7 +309,7 @@ auto ethernet_socket::mac_address() const -> const ethernet_mac_address
 
 auto ethernet_socket::native_handle() const -> void *
 {
-    return reinterpret_cast<void *>(m_handle);
+    return (void *)(&m_handle);
 }
 
 auto ethernet_socket::to_string() const -> const std::string
