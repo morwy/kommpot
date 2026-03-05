@@ -1,23 +1,7 @@
-cmake_minimum_required(VERSION 3.5)
-
 set(PROJECT_NAME "kommpot-tests")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 find_package(Threads REQUIRED)
-
-set(GOOGLETEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third-party/googletest")
-if (NOT EXISTS ${GOOGLETEST_DIR})
-    message(FATAL_ERROR "No googletest library found!")
-endif ()
-
-set(GOOGLETEST_SOURCES ${GOOGLETEST_DIR}/googletest)
-set(GOOGLEMOCK_SOURCES ${GOOGLETEST_DIR}/googlemock)
-set(GOOGLETEST_FILES ${GOOGLETEST_SOURCES}/src/gtest-all.cc)
-set(GOOGLETEST_INCLUDES ${GOOGLETEST_SOURCES} ${GOOGLETEST_SOURCES}/include)
-list(APPEND GOOGLETEST_FILES ${GOOGLEMOCK_SOURCES}/src/gmock-all.cc)
-list(APPEND GOOGLETEST_INCLUDES ${GOOGLEMOCK_SOURCES} ${GOOGLEMOCK_SOURCES}/include)
-
-include_directories(${GOOGLETEST_INCLUDES})
 
 #
 # Add test source files recursively.
