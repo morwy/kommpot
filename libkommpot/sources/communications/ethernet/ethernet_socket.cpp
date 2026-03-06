@@ -1,5 +1,6 @@
 #include <communications/ethernet/ethernet_socket.h>
 
+#include <communications/ethernet/ethernet_address_factory.h>
 #include <communications/ethernet/ethernet_context.h>
 #include <communications/ethernet/ethernet_tools.h>
 #include <kommpot_core.h>
@@ -407,7 +408,17 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
         return false;
     }
 
-    mac_address = ethernet_mac_address(mac_address_bytes);
+    auto mac_address_opt =
+        ethernet_address_factory::from_array(mac_address_bytes, sizeof(mac_address_bytes));
+    if (!mac_address_opt.has_value())
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: failed to convert MAC address from byte array.",
+            static_cast<void *>(this), to_string());
+        return false;
+    }
+
+    mac_address = *mac_address_opt;
 
 #elif defined __linux__
 
@@ -466,7 +477,13 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
         if (sin->sin_addr.s_addr == ip_address.s_addr && sdl->sdl_alen)
         {
             unsigned char *mac = (unsigned char *)LLADDR(sdl);
-            mac_address = ethernet_mac_address(mac);
+            if (!ethernet_address_factory::from_array(mac, 6, mac_address))
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                    "Socket {} / {}: failed to convert MAC address from byte array.",
+                    static_cast<void *>(this), to_string());
+                return false;
+            }
 
             return true;
         }

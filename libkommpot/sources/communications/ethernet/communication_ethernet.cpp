@@ -8,6 +8,7 @@
 #include <third-party/spdlog/include/spdlog/spdlog.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #ifdef _WIN32
@@ -96,13 +97,14 @@ auto communication_ethernet::devices(
             }
             else
             {
-                std::shared_ptr<ethernet_ip_address> ip_address = nullptr;
-                if (!ethernet_address_factory::from_string(identification->ip, ip_address))
+                auto ip_address_opt = ethernet_address_factory::from_string(identification->ip);
+                if (!ip_address_opt)
                 {
                     SPDLOG_LOGGER_ERROR(
                         KOMMPOT_LOGGER, "Invalid IP address format: {}", identification->ip);
                     continue;
                 }
+                auto ip_address = *ip_address_opt;
 
                 kommpot::ethernet_device_identification host_id;
                 if (!is_host_reachable(ip_address, identification->port, host_id))
@@ -133,11 +135,12 @@ auto communication_ethernet::devices(
 
 auto communication_ethernet::open() -> bool
 {
-    std::shared_ptr<ethernet_ip_address> ip_address = nullptr;
-    if (!ethernet_address_factory::from_string(m_identification.ip, ip_address))
+    auto ip_address_opt = ethernet_address_factory::from_string(m_identification.ip);
+    if (!ip_address_opt)
     {
         return false;
     }
+    auto ip_address = *ip_address_opt;
 
     if (ip_address == nullptr)
     {
@@ -295,7 +298,14 @@ auto communication_ethernet::get_all_interfaces()
         interface.description = adapter->Description;
         interface.dns_suffix = adapter->DnsSuffix;
 
-        interface.mac_address = ethernet_mac_address(adapter->PhysicalAddress);
+        auto mac_result = ethernet_address_factory::from_array(
+            adapter->PhysicalAddress, sizeof(adapter->PhysicalAddress));
+        if (!mac_result)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create MAC address from byte array.");
+            continue;
+        }
+        interface.mac_address = *mac_result;
 
         /**
          * @brief get current IP addresses.
@@ -331,15 +341,21 @@ auto communication_ethernet::get_all_interfaces()
             continue;
         }
 
-        bool is_valid_ipv4 = ethernet_address_factory::from_sockaddr_in(
-            (SOCKADDR *)ipv4_address, interface.ipv4.address);
+        auto ipv4_addr_result =
+            ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv4_address);
+        bool is_valid_ipv4 = ipv4_addr_result.has_value();
+        if (is_valid_ipv4)
+            interface.ipv4.address = *ipv4_addr_result;
         if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv4 address from sockaddr_in.");
         }
 
-        bool is_valid_ipv6 = ethernet_address_factory::from_sockaddr_in(
-            (SOCKADDR *)ipv6_address, interface.ipv6.address);
+        auto ipv6_addr_result =
+            ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv6_address);
+        bool is_valid_ipv6 = ipv6_addr_result.has_value();
+        if (is_valid_ipv6)
+            interface.ipv6.address = *ipv6_addr_result;
         if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv6 address from sockaddr_in.");
@@ -382,15 +398,19 @@ auto communication_ethernet::get_all_interfaces()
             continue;
         }
 
-        is_valid_ipv4 = ethernet_address_factory::from_sockaddr_in(
-            (SOCKADDR *)ipv4_gateway, interface.ipv4.gateway);
+        auto ipv4_gw_result = ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv4_gateway);
+        is_valid_ipv4 = ipv4_gw_result.has_value();
+        if (is_valid_ipv4)
+            interface.ipv4.gateway = *ipv4_gw_result;
         if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv4 gateway from sockaddr_in.");
         }
 
-        is_valid_ipv6 = ethernet_address_factory::from_sockaddr_in(
-            (SOCKADDR *)ipv6_gateway, interface.ipv6.gateway);
+        auto ipv6_gw_result = ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv6_gateway);
+        is_valid_ipv6 = ipv6_gw_result.has_value();
+        if (is_valid_ipv6)
+            interface.ipv6.gateway = *ipv6_gw_result;
         if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv6 gateway from sockaddr_in.");
@@ -410,15 +430,21 @@ auto communication_ethernet::get_all_interfaces()
         interface.ipv4.mask_prefix = ipv4_prefix_length;
         interface.ipv6.mask_prefix = ipv6_prefix_length;
 
-        is_valid_ipv4 = ethernet_address_factory::calculate_mask(
-            interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.mask);
+        auto ipv4_mask_result = ethernet_address_factory::calculate_mask(
+            interface.ipv4.address, interface.ipv4.mask_prefix);
+        is_valid_ipv4 = ipv4_mask_result.has_value();
+        if (is_valid_ipv4)
+            interface.ipv4.mask = *ipv4_mask_result;
         if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 mask.");
         }
 
-        is_valid_ipv6 = ethernet_address_factory::calculate_mask(
-            interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.mask);
+        auto ipv6_mask_result = ethernet_address_factory::calculate_mask(
+            interface.ipv6.address, interface.ipv6.mask_prefix);
+        is_valid_ipv6 = ipv6_mask_result.has_value();
+        if (is_valid_ipv6)
+            interface.ipv6.mask = *ipv6_mask_result;
         if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 mask.");
@@ -432,15 +458,21 @@ auto communication_ethernet::get_all_interfaces()
             continue;
         }
 
-        is_valid_ipv4 = ethernet_address_factory::calculate_base_address(
-            interface.ipv4.address, interface.ipv4.mask, interface.ipv4.base_address);
+        auto ipv4_base_result = ethernet_address_factory::calculate_base_address(
+            interface.ipv4.address, interface.ipv4.mask);
+        is_valid_ipv4 = ipv4_base_result.has_value();
+        if (is_valid_ipv4)
+            interface.ipv4.base_address = *ipv4_base_result;
         if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 base address.");
         }
 
-        is_valid_ipv6 = ethernet_address_factory::calculate_base_address(
-            interface.ipv6.address, interface.ipv6.mask, interface.ipv6.base_address);
+        auto ipv6_base_result = ethernet_address_factory::calculate_base_address(
+            interface.ipv6.address, interface.ipv6.mask);
+        is_valid_ipv6 = ipv6_base_result.has_value();
+        if (is_valid_ipv6)
+            interface.ipv6.base_address = *ipv6_base_result;
         if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 base address.");
@@ -454,15 +486,21 @@ auto communication_ethernet::get_all_interfaces()
             continue;
         }
 
-        is_valid_ipv4 = ethernet_address_factory::calculate_max_hosts(
-            interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.max_hosts);
+        auto ipv4_count_result = ethernet_address_factory::calculate_address_count(
+            interface.ipv4.address, interface.ipv4.mask_prefix);
+        is_valid_ipv4 = ipv4_count_result.has_value();
+        if (is_valid_ipv4)
+            interface.ipv4.max_hosts = *ipv4_count_result;
         if (!is_valid_ipv4)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 max hosts.");
         }
 
-        is_valid_ipv6 = ethernet_address_factory::calculate_max_hosts(
-            interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.max_hosts);
+        auto ipv6_count_result = ethernet_address_factory::calculate_address_count(
+            interface.ipv6.address, interface.ipv6.mask_prefix);
+        is_valid_ipv6 = ipv6_count_result.has_value();
+        if (is_valid_ipv6)
+            interface.ipv6.max_hosts = *ipv6_count_result;
         if (!is_valid_ipv6)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 max hosts.");
@@ -539,7 +577,16 @@ auto communication_ethernet::get_all_interfaces()
                 continue;
             }
 
-            interface.mac_address = ethernet_mac_address(s->sll_addr);
+            auto mac_result =
+                ethernet_address_factory::from_array(s->sll_addr, sizeof(s->sll_addr));
+            if (!mac_result)
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                    "Failed to convert MAC address from byte array for interface {}.",
+                    adapter->ifa_name);
+                continue;
+            }
+            interface.mac_address = *mac_result;
 #    elif __APPLE__
 
             /**
@@ -561,7 +608,15 @@ auto communication_ethernet::get_all_interfaces()
             uint8_t mac[6] = {0};
             memcpy(mac, &sdl->sdl_data[macIndex], 6);
 
-            interface.mac_address = ethernet_mac_address(mac);
+            auto mac_result = ethernet_address_factory::from_array(mac, sizeof(mac));
+            if (!mac_result)
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                    "Failed to convert MAC address from byte array for interface {}.",
+                    adapter->ifa_name);
+                continue;
+            }
+            interface.mac_address = *mac_result;
 #    endif
         }
         /**
@@ -571,81 +626,99 @@ auto communication_ethernet::get_all_interfaces()
         {
             auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
 
-            if (!ethernet_address_factory::from_sockaddr_in(
-                    adapter->ifa_addr, interface.ipv4.address))
+            auto ipv4_addr_result = ethernet_address_factory::from_sockaddr_in(adapter->ifa_addr);
+            if (!ipv4_addr_result)
             {
                 SPDLOG_LOGGER_ERROR(
                     KOMMPOT_LOGGER, "Failed to create IPv4 address from sockaddr_in.");
                 continue;
             }
+            interface.ipv4.address = *ipv4_addr_result;
 
-            if (!ethernet_address_factory::from_sockaddr_in(
-                    adapter->ifa_netmask, interface.ipv4.mask))
+            auto ipv4_mask_result =
+                ethernet_address_factory::from_sockaddr_in(adapter->ifa_netmask);
+            if (!ipv4_mask_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create IPv4 mask from sockaddr_in.");
                 continue;
             }
+            interface.ipv4.mask = *ipv4_mask_result;
 
-            if (!ethernet_address_factory::calculate_base_address(
-                    interface.ipv4.address, interface.ipv4.mask, interface.ipv4.base_address))
+            auto ipv4_base_result = ethernet_address_factory::calculate_base_address(
+                interface.ipv4.address, interface.ipv4.mask);
+            if (!ipv4_base_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 base address.");
                 continue;
             }
+            interface.ipv4.base_address = *ipv4_base_result;
 
-            if (!ethernet_address_factory::calculate_mask_prefix(
-                    interface.ipv4.mask, interface.ipv4.mask_prefix))
+            auto ipv4_prefix_result =
+                ethernet_address_factory::calculate_mask_prefix(interface.ipv4.mask);
+            if (!ipv4_prefix_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 mask prefix.");
                 continue;
             }
+            interface.ipv4.mask_prefix = *ipv4_prefix_result;
 
-            if (!ethernet_address_factory::calculate_max_hosts(
-                    interface.ipv4.address, interface.ipv4.mask_prefix, interface.ipv4.max_hosts))
+            auto ipv4_count_result = ethernet_address_factory::calculate_address_count(
+                interface.ipv4.address, interface.ipv4.mask_prefix);
+            if (!ipv4_count_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv4 max hosts.");
                 continue;
             }
+            interface.ipv4.max_hosts = *ipv4_count_result;
         }
         else if (adapter->ifa_addr->sa_family == AF_INET6)
         {
             auto &interface = find_or_create_interface(interfaces, adapter->ifa_name);
 
-            if (!ethernet_address_factory::from_sockaddr_in(
-                    adapter->ifa_addr, interface.ipv6.address))
+            auto ipv6_addr_result = ethernet_address_factory::from_sockaddr_in(adapter->ifa_addr);
+            if (!ipv6_addr_result)
             {
                 SPDLOG_LOGGER_ERROR(
                     KOMMPOT_LOGGER, "Failed to create IPv6 address from sockaddr_in.");
                 continue;
             }
+            interface.ipv6.address = *ipv6_addr_result;
 
-            if (!ethernet_address_factory::from_sockaddr_in(
-                    adapter->ifa_netmask, interface.ipv6.mask))
+            auto ipv6_mask_result =
+                ethernet_address_factory::from_sockaddr_in(adapter->ifa_netmask);
+            if (!ipv6_mask_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to create IPv6 mask from sockaddr_in.");
                 continue;
             }
+            interface.ipv6.mask = *ipv6_mask_result;
 
-            if (!ethernet_address_factory::calculate_base_address(
-                    interface.ipv6.address, interface.ipv6.mask, interface.ipv6.base_address))
+            auto ipv6_base_result = ethernet_address_factory::calculate_base_address(
+                interface.ipv6.address, interface.ipv6.mask);
+            if (!ipv6_base_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 base address.");
                 continue;
             }
+            interface.ipv6.base_address = *ipv6_base_result;
 
-            if (!ethernet_address_factory::calculate_mask_prefix(
-                    interface.ipv6.mask, interface.ipv6.mask_prefix))
+            auto ipv6_prefix_result =
+                ethernet_address_factory::calculate_mask_prefix(interface.ipv6.mask);
+            if (!ipv6_prefix_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 mask prefix.");
                 continue;
             }
+            interface.ipv6.mask_prefix = *ipv6_prefix_result;
 
-            if (!ethernet_address_factory::calculate_max_hosts(
-                    interface.ipv6.address, interface.ipv6.mask_prefix, interface.ipv6.max_hosts))
+            auto ipv6_count_result = ethernet_address_factory::calculate_address_count(
+                interface.ipv6.address, interface.ipv6.mask_prefix);
+            if (!ipv6_count_result)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Failed to calculate IPv6 max hosts.");
                 continue;
             }
+            interface.ipv6.max_hosts = *ipv6_count_result;
         }
         else
         {
@@ -789,14 +862,16 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
     std::vector<std::thread> threads;
     std::vector<std::shared_ptr<kommpot::device_communication>> hosts;
 
-    for (uint32_t host_index = 1; host_index < network.max_hosts - 1; ++host_index)
+    for (uint64_t host_index = 1; host_index < network.max_hosts - 1; ++host_index)
     {
-        std::shared_ptr<ethernet_ip_address> new_address = nullptr;
-        if (!ethernet_address_factory::calculate_new_address(
-                network.base_address, host_index, new_address))
+        auto new_address_opt =
+            ethernet_address_factory::calculate_new_address(network.base_address, host_index);
+        if (!new_address_opt)
         {
             continue;
         }
+
+        auto new_address = *new_address_opt;
 
         threads.emplace_back([new_address, identification, &mutex, &hosts]() {
             kommpot::ethernet_device_identification host_id;
