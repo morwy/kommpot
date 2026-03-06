@@ -28,6 +28,11 @@ include(ConvenienceDefinitions.cmake)
 include(BuildOptions.cmake)
 
 #
+# Third-party fetch.
+#
+include(ThirdPartyFetch.cmake)
+
+#
 # Set output folder for binaries.
 #
 set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR})
@@ -231,6 +236,5 @@ add_subdirectory(libkommpot)
 # Add tests.
 #
 if(IS_TESTING_ENABLED)
-    enable_testing()
     add_subdirectory(tests)
 endif()
