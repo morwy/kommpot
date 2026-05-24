@@ -477,13 +477,16 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
         if (sin->sin_addr.s_addr == ip_address.s_addr && sdl->sdl_alen)
         {
             unsigned char *mac = (unsigned char *)LLADDR(sdl);
-            if (!ethernet_address_factory::from_array(mac, 6, mac_address))
+            auto mac_address_opt = ethernet_address_factory::from_array(mac, 6);
+            if (!mac_address_opt.has_value())
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
                     "Socket {} / {}: failed to convert MAC address from byte array.",
                     static_cast<void *>(this), to_string());
                 return false;
             }
+
+            mac_address = *mac_address_opt;
 
             return true;
         }
