@@ -4,42 +4,32 @@
 #pragma once
 
 #include <array>
-#include <cstring>
-#include <iomanip>
-#include <sstream>
-#include <stdint.h>
+#include <cstdint>
+#include <string>
 
 class ethernet_ip_address
 {
 public:
-    ethernet_ip_address() = default;
-    virtual auto to_string() const -> const std::string = 0;
+    constexpr ethernet_ip_address() = default;
+    virtual ~ethernet_ip_address() = default;
+
+    virtual auto to_string() const -> std::string = 0;
 };
 
 class ethernet_ipv4_address : public ethernet_ip_address
 {
 public:
-    ethernet_ipv4_address()
-    {
-        value.fill(0x00);
-    }
+    ethernet_ipv4_address();
 
-    auto to_uint32() const -> const uint32_t
-    {
-        return (value[0] << 24) | (value[1] << 16) | (value[2] << 8) | value[3];
-    }
+    auto to_uint32() const -> uint32_t;
+    auto to_string() const -> std::string override;
 
-    auto to_string() const -> const std::string override
-    {
-        std::stringstream result;
-
-        for (size_t i = 0; i < value.size(); ++i)
-        {
-            result << (i > 0 ? "." : "") << std::to_string(value[i]);
-        }
-
-        return result.str();
-    }
+    auto operator==(const ethernet_ipv4_address &other) const noexcept -> bool;
+    auto operator!=(const ethernet_ipv4_address &other) const noexcept -> bool;
+    auto operator<(const ethernet_ipv4_address &other) const noexcept -> bool;
+    auto operator<=(const ethernet_ipv4_address &other) const noexcept -> bool;
+    auto operator>(const ethernet_ipv4_address &other) const noexcept -> bool;
+    auto operator>=(const ethernet_ipv4_address &other) const noexcept -> bool;
 
 private:
     friend class ethernet_address_factory;
@@ -49,22 +39,16 @@ private:
 class ethernet_ipv6_address : public ethernet_ip_address
 {
 public:
-    ethernet_ipv6_address()
-    {
-        value.fill(0x00);
-    }
+    ethernet_ipv6_address();
 
-    auto to_string() const -> const std::string override
-    {
-        std::stringstream result;
+    auto to_string() const -> std::string override;
 
-        for (size_t i = 0; i < value.size(); ++i)
-        {
-            result << (i > 0 ? ":" : "") << std::to_string(value[i]);
-        }
-
-        return result.str();
-    }
+    auto operator==(const ethernet_ipv6_address &other) const noexcept -> bool;
+    auto operator!=(const ethernet_ipv6_address &other) const noexcept -> bool;
+    auto operator<(const ethernet_ipv6_address &other) const noexcept -> bool;
+    auto operator<=(const ethernet_ipv6_address &other) const noexcept -> bool;
+    auto operator>(const ethernet_ipv6_address &other) const noexcept -> bool;
+    auto operator>=(const ethernet_ipv6_address &other) const noexcept -> bool;
 
 private:
     friend class ethernet_address_factory;
@@ -74,39 +58,17 @@ private:
 class ethernet_mac_address
 {
 public:
-    ethernet_mac_address()
-    {
-        value.fill(0x00);
-    }
+    ethernet_mac_address();
 
-    ethernet_mac_address(const uint8_t data[8])
-    {
-        std::memcpy(value.data(), data, value.size());
-    }
+    auto empty() const -> bool;
+    auto to_string() const -> std::string;
 
-    auto empty() const -> bool
-    {
-        return memcmp(value.data(), "\x00\x00\x00\x00\x00\x00", value.size()) == 0;
-    }
-
-    auto to_string() const -> const std::string
-    {
-        std::stringstream result;
-
-        result << std::uppercase << std::hex << std::setfill('0');
-
-        for (size_t i = 0; i < value.size(); ++i)
-        {
-            result << std::setw(2) << static_cast<int>(value[i]);
-
-            if (i != value.size() - 1)
-            {
-                result << ":";
-            }
-        }
-
-        return result.str();
-    }
+    auto operator==(const ethernet_mac_address &other) const noexcept -> bool;
+    auto operator!=(const ethernet_mac_address &other) const noexcept -> bool;
+    auto operator<(const ethernet_mac_address &other) const noexcept -> bool;
+    auto operator<=(const ethernet_mac_address &other) const noexcept -> bool;
+    auto operator>(const ethernet_mac_address &other) const noexcept -> bool;
+    auto operator>=(const ethernet_mac_address &other) const noexcept -> bool;
 
 private:
     friend class ethernet_address_factory;

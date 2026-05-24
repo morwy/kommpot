@@ -19,7 +19,7 @@ struct ethernet_network_information
     std::shared_ptr<ethernet_ip_address> gateway = nullptr;
     std::shared_ptr<ethernet_ip_address> mask = nullptr;
     uint32_t mask_prefix = 0;
-    uint32_t max_hosts = 0;
+    uint64_t max_hosts = 0;
 };
 
 struct ethernet_interface_information

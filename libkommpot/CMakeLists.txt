@@ -51,6 +51,8 @@ endif()
 
 add_library(${PROJECT_NAME} ${LIBRARY_TYPE} ${PROJECT_FOLDER_FILES})
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN_EXPORT)
 
