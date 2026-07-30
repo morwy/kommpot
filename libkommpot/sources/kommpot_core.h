@@ -6,6 +6,7 @@
 #include <libkommpot.h>
 #include <spdlog/spdlog.h>
 
+#include <atomic>
 #include <future>
 
 constexpr auto LOGGER_NAME = "kommpot";
@@ -36,6 +37,12 @@ private:
     kommpot::settings_structure m_settings;
     std::shared_ptr<spdlog::logger> m_logger = nullptr;
     std::future<void> m_future;
+
+    /**
+     * @brief guards against overlapping enumerations. Reassigning m_future while a previous task is
+     * still running would block the caller on the std::future destructor.
+     */
+    std::atomic_bool m_is_enumerating = false;
 
     kommpot_core() = default;
     ~kommpot_core() = default;
