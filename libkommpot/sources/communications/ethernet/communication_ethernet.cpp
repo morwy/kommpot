@@ -6,9 +6,14 @@
 #include <kommpot_core.h>
 #include <libkommpot.h>
 #include <third-party/spdlog/include/spdlog/spdlog.h>
+#include <third-party/spdlog/include/spdlog/stopwatch.h>
 
+#include <algorithm>
+#include <atomic>
 #include <memory>
+#include <mutex>
 #include <optional>
+#include <thread>
 #include <vector>
 
 #ifdef _WIN32
@@ -859,30 +864,54 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
     -> const std::vector<std::shared_ptr<kommpot::device_communication>>
 {
     std::mutex mutex;
-    std::vector<std::thread> threads;
     std::vector<std::shared_ptr<kommpot::device_communication>> hosts;
 
-    for (uint64_t host_index = 1; host_index < network.max_hosts - 1; ++host_index)
-    {
-        auto new_address_opt =
-            ethernet_address_factory::calculate_new_address(network.base_address, host_index);
-        if (!new_address_opt)
+    spdlog::stopwatch stopwatch;
+    std::atomic<uint64_t> scanned_hosts = 0;
+
+    /**
+     * @brief hosts to scan live in the half-open range [first_index, last_index).
+     */
+    const uint64_t first_index = 1;
+    const uint64_t last_index = (network.max_hosts > 1) ? (network.max_hosts - 1) : first_index;
+    std::atomic<uint64_t> next_index = first_index;
+
+    /**
+     * @brief a fixed pool of workers keeps pulling the next address to scan, so a fast host never
+     * waits for a slow one to time out before the next address is picked up.
+     */
+    const uint64_t total_hosts = last_index - first_index;
+    const uint32_t worker_count =
+        static_cast<uint32_t>(std::min<uint64_t>(M_MAX_CONCURRENT_SEARCH_THREADS, total_hosts));
+
+    auto worker = [&]() {
+        while (true)
         {
-            continue;
-        }
+            const uint64_t host_index = next_index.fetch_add(1, std::memory_order_relaxed);
+            if (host_index >= last_index)
+            {
+                break;
+            }
 
-        auto new_address = *new_address_opt;
+            auto new_address_opt =
+                ethernet_address_factory::calculate_new_address(network.base_address, host_index);
+            if (!new_address_opt)
+            {
+                continue;
+            }
 
-        threads.emplace_back([new_address, identification, &mutex, &hosts]() {
+            auto new_address = *new_address_opt;
+            scanned_hosts.fetch_add(1, std::memory_order_relaxed);
+
             kommpot::ethernet_device_identification host_id;
             if (!is_host_reachable(new_address, identification.port, host_id))
             {
-                return;
+                continue;
             }
 
             if (!is_host_suitable(identification, host_id))
             {
-                return;
+                continue;
             }
 
             auto host = std::make_shared<communication_ethernet>(host_id);
@@ -890,28 +919,29 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
             {
                 SPDLOG_LOGGER_ERROR(
                     KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
-                return;
+                continue;
             }
 
             std::lock_guard<std::mutex> lock(mutex);
             hosts.push_back(host);
-        });
-
-        if (threads.size() >= M_MAX_CONCURRENT_SEARCH_THREADS)
-        {
-            for (auto &thread : threads)
-            {
-                thread.join();
-            }
-
-            threads.clear();
         }
+    };
+
+    std::vector<std::thread> workers;
+    workers.reserve(worker_count);
+    for (uint32_t worker_index = 0; worker_index < worker_count; ++worker_index)
+    {
+        workers.emplace_back(worker);
     }
 
-    for (auto &thread : threads)
+    for (auto &worker_thread : workers)
     {
-        thread.join();
+        worker_thread.join();
     }
+
+    SPDLOG_LOGGER_INFO(KOMMPOT_LOGGER,
+        "scan_network_for_hosts(): scanned {} host(s), found {} device(s) in {:.3} seconds.",
+        scanned_hosts.load(), hosts.size(), stopwatch);
 
     return hosts;
 }
