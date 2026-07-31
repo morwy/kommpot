@@ -59,7 +59,14 @@ private:
     ethernet_mac_address m_mac_address;
     bool m_is_connected = false;
 
+    /**
+     * @brief bounds connect(); 0 keeps the OS-default blocking connect behaviour.
+     */
+    uint32_t m_timeout_msecs = 0;
+
     auto close_socket() -> const bool;
+
+    [[nodiscard]] auto set_blocking(const bool blocking) -> const bool;
 
     [[nodiscard]] auto read_out_hostname(std::string &hostname) -> const bool;
     [[nodiscard]] auto read_out_mac_address(ethernet_mac_address &mac_address) -> const bool;

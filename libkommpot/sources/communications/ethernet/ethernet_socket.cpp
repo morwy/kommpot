@@ -15,6 +15,8 @@
 // clang-format on
 #else
 #    include <arpa/inet.h>
+#    include <cerrno>
+#    include <fcntl.h>
 #    include <net/route.h>
 #    include <netdb.h>
 #    include <netinet/if_ether.h>
@@ -117,12 +119,74 @@ auto ethernet_socket::connect() -> const bool
     address.sin_port = htons(m_port);
     inet_pton(m_ip_family, m_ip_address->to_string().c_str(), &address.sin_addr);
 
+    /**
+     * @attention a blocking connect() ignores SO_SNDTIMEO and stalls for the OS-default timeout
+     * (~21s on Windows) on unreachable hosts, which makes network scans hang. When a timeout is
+     * configured we perform a non-blocking connect bounded by select().
+     */
+    if (m_timeout_msecs > 0 && !set_blocking(false))
+    {
+        close_socket();
+        return false;
+    }
+
     const auto result = ::connect(m_handle, (sockaddr *)&address, sizeof(address));
     if (result == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect due to error: {}.",
-            static_cast<void *>(this), to_string(),
-            ethernet_tools::get_last_error_code_as_string());
+#ifdef _WIN32
+        const bool is_in_progress = (WSAGetLastError() == WSAEWOULDBLOCK);
+#else
+        const bool is_in_progress = (errno == EINPROGRESS);
+#endif
+        if (m_timeout_msecs == 0 || !is_in_progress)
+        {
+            SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to connect due to error: {}.", static_cast<void *>(this),
+                to_string(), ethernet_tools::get_last_error_code_as_string());
+            close_socket();
+            return false;
+        }
+
+        fd_set write_set;
+        FD_ZERO(&write_set);
+        FD_SET(m_handle, &write_set);
+
+        timeval timeout = {};
+        timeout.tv_sec = m_timeout_msecs / 1000;
+        timeout.tv_usec = (m_timeout_msecs % 1000) * 1000;
+
+        const auto select_result =
+            select(static_cast<int>(m_handle) + 1, nullptr, &write_set, nullptr, &timeout);
+        if (select_result <= 0)
+        {
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: connect timed out.",
+                static_cast<void *>(this), to_string());
+            close_socket();
+            return false;
+        }
+
+        int socket_error = 0;
+#ifdef _WIN32
+        int socket_error_size = sizeof(socket_error);
+#else
+        socklen_t socket_error_size = sizeof(socket_error);
+#endif
+        if (getsockopt(m_handle, SOL_SOCKET, SO_ERROR, (char *)&socket_error, &socket_error_size) ==
+                ETH_SOCKET_ERROR ||
+            socket_error != 0)
+        {
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect.",
+                static_cast<void *>(this), to_string());
+            close_socket();
+            return false;
+        }
+    }
+
+    /**
+     * @attention restore blocking mode so read()/write() honour SO_RCVTIMEO/SO_SNDTIMEO.
+     */
+    if (m_timeout_msecs > 0 && !set_blocking(true))
+    {
         close_socket();
         return false;
     }
@@ -264,6 +328,8 @@ auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
 
 auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
 {
+    m_timeout_msecs = timeout_msecs;
+
     /**
      * @attention please note the difference between Windows and *nix OSes here.
      */
@@ -343,6 +409,35 @@ auto ethernet_socket::close_socket() -> const bool
 
     SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: disconnected successfully.",
         static_cast<void *>(this), to_string());
+
+    return true;
+}
+
+auto ethernet_socket::set_blocking(const bool blocking) -> const bool
+{
+#ifdef _WIN32
+    u_long mode = blocking ? 0 : 1;
+    if (ioctlsocket(m_handle, FIONBIO, &mode) != 0)
+#else
+    int flags = fcntl(m_handle, F_GETFL, 0);
+    if (flags == -1)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: fcntl(F_GETFL) failed with error: {}.",
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
+        return false;
+    }
+
+    flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    if (fcntl(m_handle, F_SETFL, flags) == -1)
+#endif
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: failed to change the blocking mode due to error: {}.",
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
+        return false;
+    }
 
     return true;
 }
