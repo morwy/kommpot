@@ -36,14 +36,14 @@ auto kommpot_core::initialize() -> bool
 
 auto kommpot_core::deinitialize() -> bool
 {
-#ifdef IS_ETHERNET_ENABLED
-    ethernet_context::instance().deinitialize();
-#endif
-
     if (m_future.valid())
     {
         m_future.wait();
     }
+
+#ifdef IS_ETHERNET_ENABLED
+    ethernet_context::instance().deinitialize();
+#endif
 
     deinitialize_logger();
     return true;
