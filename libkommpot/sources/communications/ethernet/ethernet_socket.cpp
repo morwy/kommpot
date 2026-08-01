@@ -24,6 +24,12 @@
 #    include <sys/socket.h>
 #    include <unistd.h>
 
+#    ifdef __linux__
+#        include <cstdio>
+#        include <fstream>
+#        include <sstream>
+#    endif
+
 #    ifdef __APPLE__
 #        include <net/if_dl.h>
 #        include <sys/sysctl.h>
@@ -515,8 +521,75 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
 
     mac_address = *mac_address_opt;
 
+    return true;
+
 #elif defined __linux__
 
+    const std::string target_ip = m_ip_address->to_string();
+
+    /**
+     * @attention Linux exposes the resolved ARP cache via /proc/net/arp, which maps peer IP
+     * addresses to their MAC addresses. The entry only exists after the kernel has resolved the
+     * peer, which is the case once the socket is connected.
+     */
+    std::ifstream arp_table("/proc/net/arp");
+    if (!arp_table.is_open())
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to open /proc/net/arp.",
+            static_cast<void *>(this), to_string());
+        return false;
+    }
+
+    std::string line;
+    // Skip the header line.
+    std::getline(arp_table, line);
+
+    while (std::getline(arp_table, line))
+    {
+        std::istringstream stream(line);
+        std::string ip_address;
+        std::string hardware_type;
+        std::string flags;
+        std::string mac_string;
+        if (!(stream >> ip_address >> hardware_type >> flags >> mac_string))
+        {
+            continue;
+        }
+
+        if (ip_address != target_ip)
+        {
+            continue;
+        }
+
+        uint8_t mac_address_bytes[6] = {0};
+        if (std::sscanf(mac_string.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac_address_bytes[0],
+                &mac_address_bytes[1], &mac_address_bytes[2], &mac_address_bytes[3],
+                &mac_address_bytes[4], &mac_address_bytes[5]) != 6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to parse MAC address '{}' from /proc/net/arp.",
+                static_cast<void *>(this), to_string(), mac_string);
+            return false;
+        }
+
+        auto mac_address_opt =
+            ethernet_address_factory::from_array(mac_address_bytes, sizeof(mac_address_bytes));
+        if (!mac_address_opt.has_value())
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to convert MAC address from byte array.",
+                static_cast<void *>(this), to_string());
+            return false;
+        }
+
+        mac_address = *mac_address_opt;
+
+        return true;
+    }
+
+    SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+        "Socket {} / {}: no matching MAC address found in /proc/net/arp.",
+        static_cast<void *>(this), to_string());
     return false;
 
 #elif defined __APPLE__
@@ -590,8 +663,5 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
     }
 
     return false;
-
 #endif
-
-    return true;
 }
