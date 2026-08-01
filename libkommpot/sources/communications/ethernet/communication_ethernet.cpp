@@ -574,7 +574,7 @@ auto communication_ethernet::get_all_interfaces()
 
 #    ifdef __linux__
             struct sockaddr_ll *s = (struct sockaddr_ll *)adapter->ifa_addr;
-            if (s->sll_halen == 6)
+            if (s->sll_halen != 6)
             {
                 SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
                     "Interface {} has invalid MAC address length: {}.", adapter->ifa_name,
