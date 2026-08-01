@@ -55,11 +55,16 @@ ethernet_socket::~ethernet_socket()
 {
     if (is_connected())
     {
-        if (!disconnect())
+        if (!disconnect() && KOMMPOT_LOGGER != nullptr)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to disconnect!",
                 static_cast<void *>(this), to_string());
         }
+    }
+
+    if (KOMMPOT_LOGGER == nullptr)
+    {
+        return;
     }
 
     SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: destructed object.",

@@ -174,7 +174,7 @@ auto communication_ethernet::close() -> void
 {
     if (m_socket.is_connected())
     {
-        if (!m_socket.disconnect())
+        if (!m_socket.disconnect() && KOMMPOT_LOGGER != nullptr)
         {
             SPDLOG_LOGGER_ERROR(
                 KOMMPOT_LOGGER, "Socket {} failed to disconnect!", m_socket.to_string());
