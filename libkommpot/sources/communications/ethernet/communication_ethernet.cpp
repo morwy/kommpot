@@ -157,7 +157,7 @@ auto communication_ethernet::open() -> bool
         return false;
     }
 
-    if (!m_socket.set_timeout(M_TRANSFER_TIMEOUT_MSEC))
+    if (!m_socket.set_timeout(m_configuration.timeout_ms))
     {
         return false;
     }

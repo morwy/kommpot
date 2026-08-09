@@ -188,15 +188,32 @@ namespace kommpot {
     /**
      * @brief states specific configuration required for opening the device communication.
      */
-    struct communication_configuration
+    struct libftdi_device_configuration
     {
-        /**
-         * FTDI connection settings
-         */
         uint8_t bit_mode = 0;
         uint8_t bit_mask = 0;
     };
 
+    struct ethernet_device_configuration
+    {
+        /**
+         * @brief states max number of concurrent threads that will be used for searching devices on
+         * network.
+         */
+        uint32_t max_concurrent_search_threads = 256;
+
+        /**
+         * @brief states max timeout in milliseconds for network operations.
+         */
+        uint32_t timeout_ms = 10000;
+    };
+
+    using device_configuration =
+        std::variant<libftdi_device_configuration, ethernet_device_configuration>;
+
+    /**
+     * @brief describes error that happened during device communication.
+     */
     struct communication_error
     {
         uint32_t code = 0;
@@ -294,23 +311,22 @@ namespace kommpot {
 
         /**
          * @brief sets specific configuration that has to be applied to device_communication object.
-         * @param configuration as communication_configuration structure.
-         * {@link communication_configuration communication_configuration}
+         * @param configuration as device_configuration structure.
+         * {@link device_configuration device_configuration}
          */
-        void set_configuration(const communication_configuration &configuration)
+        void set_configuration(const device_configuration &configuration)
         {
-            m_is_custom_configuration_set = true;
-            m_configuration = configuration;
+            m_configuration_variant = configuration;
         }
 
         /**
          * @brief returns current device_communication object configuration.
-         * @return configuration as communication_configuration structure.
-         * {@link communication_configuration communication_configuration}
+         * @return configuration as device_configuration structure.
+         * {@link device_configuration device_configuration}
          */
-        [[nodiscard]] virtual auto configuration() const -> communication_configuration
+        [[nodiscard]] virtual auto configuration() const -> device_configuration
         {
-            return m_configuration;
+            return m_configuration_variant;
         }
 
         /**
@@ -387,10 +403,9 @@ namespace kommpot {
         [[nodiscard]] auto type() const -> communication_type;
 
     protected:
-        bool m_is_custom_configuration_set = false;
-        communication_configuration m_configuration;
         communication_type m_type = communication_type::UNKNOWN;
         device_identification m_identification_variant;
+        device_configuration m_configuration_variant;
     };
 
     /**

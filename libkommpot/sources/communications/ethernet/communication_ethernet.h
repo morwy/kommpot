@@ -62,9 +62,14 @@ public:
 
 private:
     kommpot::ethernet_device_identification m_identification;
+    kommpot::ethernet_device_configuration m_configuration;
+
     ethernet_socket m_socket;
-    static constexpr uint32_t M_MAX_CONCURRENT_SEARCH_THREADS = 256;
-    static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC = 2000;
+
+    static constexpr uint32_t M_MAX_CONCURRENT_SEARCH_THREADS =
+        kommpot::ethernet_device_configuration().max_concurrent_search_threads;
+    static constexpr uint32_t M_TRANSFER_TIMEOUT_MSEC =
+        kommpot::ethernet_device_configuration().timeout_ms;
 
     [[nodiscard]] static auto get_all_interfaces()
         -> const std::vector<ethernet_interface_information>;
