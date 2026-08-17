@@ -36,23 +36,21 @@ auto kommpot_core::initialize() -> bool
 
 auto kommpot_core::deinitialize() -> bool
 {
-#ifdef IS_ETHERNET_ENABLED
-    ethernet_context::instance().deinitialize();
-#endif
-
     if (m_future.valid())
     {
         m_future.wait();
     }
+
+#ifdef IS_ETHERNET_ENABLED
+    ethernet_context::instance().deinitialize();
+#endif
 
     deinitialize_logger();
     return true;
 }
 
 auto kommpot_core::settings() noexcept -> kommpot::settings_structure
-{
-    return m_settings;
-}
+{ return m_settings; }
 
 auto kommpot_core::set_settings(const kommpot::settings_structure &settings) noexcept -> void
 {
@@ -71,6 +69,14 @@ auto kommpot_core::set_settings(const kommpot::settings_structure &settings) noe
 auto kommpot_core::devices(const std::vector<kommpot::device_identification> &identifications,
     kommpot::device_callback device_cb, kommpot::status_callback status_cb) -> void
 {
+    bool expected = false;
+    if (!m_is_enumerating.compare_exchange_strong(expected, true))
+    {
+        SPDLOG_LOGGER_DEBUG(
+            KOMMPOT_LOGGER, "Enumeration already in progress, ignoring the request.");
+        return;
+    }
+
     m_future = std::async(std::launch::async, [=]() mutable {
         std::vector<std::shared_ptr<kommpot::device_communication>> device_list;
 
@@ -118,6 +124,8 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
         {
             status_cb(kommpot::enumeration_status::COMPLETED);
         }
+
+        m_is_enumerating = false;
     });
 }
 

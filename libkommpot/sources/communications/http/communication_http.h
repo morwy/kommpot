@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <third-party/cpp-httplib/httplib.h>
+#include <httplib.h>
 
 #include <libkommpot.h>
 

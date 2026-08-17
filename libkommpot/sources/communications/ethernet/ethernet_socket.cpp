@@ -1,5 +1,6 @@
 #include <communications/ethernet/ethernet_socket.h>
 
+#include <communications/ethernet/ethernet_address_factory.h>
 #include <communications/ethernet/ethernet_context.h>
 #include <communications/ethernet/ethernet_tools.h>
 #include <kommpot_core.h>
@@ -14,12 +15,20 @@
 // clang-format on
 #else
 #    include <arpa/inet.h>
+#    include <cerrno>
+#    include <fcntl.h>
 #    include <net/route.h>
 #    include <netdb.h>
 #    include <netinet/if_ether.h>
 #    include <netinet/in.h>
 #    include <sys/socket.h>
 #    include <unistd.h>
+
+#    ifdef __linux__
+#        include <cstdio>
+#        include <fstream>
+#        include <sstream>
+#    endif
 
 #    ifdef __APPLE__
 #        include <net/if_dl.h>
@@ -46,11 +55,16 @@ ethernet_socket::~ethernet_socket()
 {
     if (is_connected())
     {
-        if (!disconnect())
+        if (!disconnect() && KOMMPOT_LOGGER != nullptr)
         {
             SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to disconnect!",
                 static_cast<void *>(this), to_string());
         }
+    }
+
+    if (KOMMPOT_LOGGER == nullptr)
+    {
+        return;
     }
 
     SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: destructed object.",
@@ -116,12 +130,74 @@ auto ethernet_socket::connect() -> const bool
     address.sin_port = htons(m_port);
     inet_pton(m_ip_family, m_ip_address->to_string().c_str(), &address.sin_addr);
 
+    /**
+     * @attention a blocking connect() ignores SO_SNDTIMEO and stalls for the OS-default timeout
+     * (~21s on Windows) on unreachable hosts, which makes network scans hang. When a timeout is
+     * configured we perform a non-blocking connect bounded by select().
+     */
+    if (m_timeout_msecs > 0 && !set_blocking(false))
+    {
+        close_socket();
+        return false;
+    }
+
     const auto result = ::connect(m_handle, (sockaddr *)&address, sizeof(address));
     if (result == ETH_SOCKET_ERROR)
     {
-        SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect due to error: {}.",
-            static_cast<void *>(this), to_string(),
-            ethernet_tools::get_last_error_code_as_string());
+#ifdef _WIN32
+        const bool is_in_progress = (WSAGetLastError() == WSAEWOULDBLOCK);
+#else
+        const bool is_in_progress = (errno == EINPROGRESS);
+#endif
+        if (m_timeout_msecs == 0 || !is_in_progress)
+        {
+            SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to connect due to error: {}.", static_cast<void *>(this),
+                to_string(), ethernet_tools::get_last_error_code_as_string());
+            close_socket();
+            return false;
+        }
+
+        fd_set write_set;
+        FD_ZERO(&write_set);
+        FD_SET(m_handle, &write_set);
+
+        timeval timeout = {};
+        timeout.tv_sec = m_timeout_msecs / 1000;
+        timeout.tv_usec = (m_timeout_msecs % 1000) * 1000;
+
+        const auto select_result =
+            select(static_cast<int>(m_handle) + 1, nullptr, &write_set, nullptr, &timeout);
+        if (select_result <= 0)
+        {
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: connect timed out.",
+                static_cast<void *>(this), to_string());
+            close_socket();
+            return false;
+        }
+
+        int socket_error = 0;
+#ifdef _WIN32
+        int socket_error_size = sizeof(socket_error);
+#else
+        socklen_t socket_error_size = sizeof(socket_error);
+#endif
+        if (getsockopt(m_handle, SOL_SOCKET, SO_ERROR, (char *)&socket_error, &socket_error_size) ==
+                ETH_SOCKET_ERROR ||
+            socket_error != 0)
+        {
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Socket {} / {}: failed to connect.",
+                static_cast<void *>(this), to_string());
+            close_socket();
+            return false;
+        }
+    }
+
+    /**
+     * @attention restore blocking mode so read()/write() honour SO_RCVTIMEO/SO_SNDTIMEO.
+     */
+    if (m_timeout_msecs > 0 && !set_blocking(true))
+    {
         close_socket();
         return false;
     }
@@ -191,13 +267,27 @@ auto ethernet_socket::read(void *data, size_t size_bytes) const -> const bool
         return false;
     }
 
-    const auto bytes_received = recv(m_handle, static_cast<char *>(data), size_bytes, 0);
-    if (bytes_received == ETH_SOCKET_ERROR)
+    size_t bytes_received = 0;
+    while (bytes_received < size_bytes)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to read data due to error: {}.",
-            static_cast<const void *>(this), to_string(),
-            ethernet_tools::get_last_error_code_as_string());
-        return false;
+        const auto result = recv(
+            m_handle, static_cast<char *>(data) + bytes_received, size_bytes - bytes_received, 0);
+        if (result == ETH_SOCKET_ERROR)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to read data due to error: {}.",
+                static_cast<const void *>(this), to_string(),
+                ethernet_tools::get_last_error_code_as_string());
+            return false;
+        }
+        else if (result == 0)
+        {
+            SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: connection closed by peer.",
+                static_cast<const void *>(this), to_string());
+            return false;
+        }
+
+        bytes_received += result;
     }
 
     return true;
@@ -227,14 +317,21 @@ auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
         return false;
     }
 
-    const auto bytes_sent = send(m_handle, static_cast<const char *>(data), size_bytes, 0);
-    if (bytes_sent == ETH_SOCKET_ERROR)
+    size_t bytes_sent = 0;
+    while (bytes_sent < size_bytes)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
-            "Socket {} / {}: failed to write data due to error: {}.",
-            static_cast<const void *>(this), to_string(),
-            ethernet_tools::get_last_error_code_as_string());
-        return false;
+        const auto result = send(
+            m_handle, static_cast<const char *>(data) + bytes_sent, size_bytes - bytes_sent, 0);
+        if (result == ETH_SOCKET_ERROR)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to write data due to error: {}.",
+                static_cast<const void *>(this), to_string(),
+                ethernet_tools::get_last_error_code_as_string());
+            return false;
+        }
+
+        bytes_sent += result;
     }
 
     return true;
@@ -242,6 +339,8 @@ auto ethernet_socket::write(void *data, size_t size_bytes) const -> const bool
 
 auto ethernet_socket::set_timeout(const uint32_t &timeout_msecs) -> const bool
 {
+    m_timeout_msecs = timeout_msecs;
+
     /**
      * @attention please note the difference between Windows and *nix OSes here.
      */
@@ -288,7 +387,7 @@ auto ethernet_socket::mac_address() const -> const ethernet_mac_address
 
 auto ethernet_socket::native_handle() const -> void *
 {
-    return reinterpret_cast<void *>(m_handle);
+    return (void *)(&m_handle);
 }
 
 auto ethernet_socket::to_string() const -> const std::string
@@ -321,6 +420,35 @@ auto ethernet_socket::close_socket() -> const bool
 
     SPDLOG_LOGGER_DEBUG(KOMMPOT_LOGGER, "Socket {} / {}: disconnected successfully.",
         static_cast<void *>(this), to_string());
+
+    return true;
+}
+
+auto ethernet_socket::set_blocking(const bool blocking) -> const bool
+{
+#ifdef _WIN32
+    u_long mode = blocking ? 0 : 1;
+    if (ioctlsocket(m_handle, FIONBIO, &mode) != 0)
+#else
+    int flags = fcntl(m_handle, F_GETFL, 0);
+    if (flags == -1)
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: fcntl(F_GETFL) failed with error: {}.",
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
+        return false;
+    }
+
+    flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    if (fcntl(m_handle, F_SETFL, flags) == -1)
+#endif
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: failed to change the blocking mode due to error: {}.",
+            static_cast<void *>(this), to_string(),
+            ethernet_tools::get_last_error_code_as_string());
+        return false;
+    }
 
     return true;
 }
@@ -386,10 +514,87 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
         return false;
     }
 
-    mac_address = ethernet_mac_address(mac_address_bytes);
+    auto mac_address_opt =
+        ethernet_address_factory::from_array(mac_address_bytes, sizeof(mac_address_bytes));
+    if (!mac_address_opt.has_value())
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+            "Socket {} / {}: failed to convert MAC address from byte array.",
+            static_cast<void *>(this), to_string());
+        return false;
+    }
+
+    mac_address = *mac_address_opt;
+
+    return true;
 
 #elif defined __linux__
 
+    const std::string target_ip = m_ip_address->to_string();
+
+    /**
+     * @attention Linux exposes the resolved ARP cache via /proc/net/arp, which maps peer IP
+     * addresses to their MAC addresses. The entry only exists after the kernel has resolved the
+     * peer, which is the case once the socket is connected.
+     */
+    std::ifstream arp_table("/proc/net/arp");
+    if (!arp_table.is_open())
+    {
+        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "Socket {} / {}: failed to open /proc/net/arp.",
+            static_cast<void *>(this), to_string());
+        return false;
+    }
+
+    std::string line;
+    // Skip the header line.
+    std::getline(arp_table, line);
+
+    while (std::getline(arp_table, line))
+    {
+        std::istringstream stream(line);
+        std::string ip_address;
+        std::string hardware_type;
+        std::string flags;
+        std::string mac_string;
+        if (!(stream >> ip_address >> hardware_type >> flags >> mac_string))
+        {
+            continue;
+        }
+
+        if (ip_address != target_ip)
+        {
+            continue;
+        }
+
+        uint8_t mac_address_bytes[6] = {0};
+        if (std::sscanf(mac_string.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &mac_address_bytes[0],
+                &mac_address_bytes[1], &mac_address_bytes[2], &mac_address_bytes[3],
+                &mac_address_bytes[4], &mac_address_bytes[5]) != 6)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to parse MAC address '{}' from /proc/net/arp.",
+                static_cast<void *>(this), to_string(), mac_string);
+            return false;
+        }
+
+        auto mac_address_opt =
+            ethernet_address_factory::from_array(mac_address_bytes, sizeof(mac_address_bytes));
+        if (!mac_address_opt.has_value())
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                "Socket {} / {}: failed to convert MAC address from byte array.",
+                static_cast<void *>(this), to_string());
+            return false;
+        }
+
+        mac_address = *mac_address_opt;
+
+        return true;
+    }
+
+    SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+        "Socket {} / {}: no matching MAC address found in /proc/net/arp.",
+        static_cast<void *>(this), to_string());
     return false;
 
 #elif defined __APPLE__
@@ -445,7 +650,16 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
         if (sin->sin_addr.s_addr == ip_address.s_addr && sdl->sdl_alen)
         {
             unsigned char *mac = (unsigned char *)LLADDR(sdl);
-            mac_address = ethernet_mac_address(mac);
+            auto mac_address_opt = ethernet_address_factory::from_array(mac, 6);
+            if (!mac_address_opt.has_value())
+            {
+                SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER,
+                    "Socket {} / {}: failed to convert MAC address from byte array.",
+                    static_cast<void *>(this), to_string());
+                return false;
+            }
+
+            mac_address = *mac_address_opt;
 
             return true;
         }
@@ -454,8 +668,5 @@ auto ethernet_socket::read_out_mac_address(ethernet_mac_address &mac_address) ->
     }
 
     return false;
-
 #endif
-
-    return true;
 }

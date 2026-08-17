@@ -37,8 +37,12 @@ auto ethernet_context::deinitialize() -> bool
     const int result = WSACleanup();
     if (result != NO_ERROR)
     {
-        SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "WSACleanup() failed with error {}", WSAGetLastError());
-        return false;
+        const int wsa_error = WSAGetLastError();
+        if (wsa_error != WSANOTINITIALISED)
+        {
+            SPDLOG_LOGGER_ERROR(KOMMPOT_LOGGER, "WSACleanup() failed with error {}", wsa_error);
+            return false;
+        }
     }
 #endif
 

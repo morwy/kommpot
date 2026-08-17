@@ -12,7 +12,7 @@ jobs:
       RELEASE_ENTRY_TEXT: ${{ steps.git-cliff-release-entry.outputs.content }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -124,7 +124,7 @@ jobs:
             c_compiler: cl
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set reusable strings
       id: strings
@@ -171,7 +171,7 @@ jobs:
       run: cd ${{ steps.strings.outputs.binary-output-dir }} && zip -r ${{ github.workspace }}${{ env.path-separator }}${{ steps.strings.outputs.archive-name }} .${{ env.path-separator }}*
 
     - name: Upload built binaries
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.strings.outputs.archive-name }}
         path: ${{ steps.strings.outputs.archive-name }}
@@ -184,7 +184,7 @@ jobs:
 
     steps:
     - name: Downloading all built binaries
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         path: ${{ github.workspace }}
         merge-multiple: true

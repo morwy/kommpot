@@ -1,6 +1,4 @@
 #include "libkommpot.h"
-#include "communications/http/communication_http.h"
-
 #include <build_options.h>
 
 #ifdef IS_LIBUSB_ENABLED
@@ -9,6 +7,10 @@
 
 #ifdef IS_ETHERNET_ENABLED
 #    include <communications/ethernet/communication_ethernet.h>
+#endif
+
+#ifdef IS_HTTP_ENABLED
+#    include "communications/http/communication_http.h"
 #endif
 
 #include <kommpot_core.h>
@@ -149,18 +151,30 @@ auto kommpot::device(const device_identification &identification)
             if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
                               kommpot::usb_device_identification>)
             {
+#ifdef IS_LIBUSB_ENABLED
                 return std::make_shared<communication_libusb>(s);
+#else
+                return nullptr;
+#endif
             }
             else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
                                    kommpot::ethernet_device_identification>)
             {
+#ifdef IS_ETHERNET_ENABLED
                 return std::make_shared<communication_ethernet>(s);
+#else
+                return nullptr;
+#endif
             }
 
             else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
                                    kommpot::http_device_identification>)
             {
+#ifdef IS_HTTP_ENABLED
                 return std::make_shared<communication_http>(s);
+#else
+                return nullptr;
+#endif
             }
 
             return nullptr;
