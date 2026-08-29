@@ -38,12 +38,12 @@ Install required dependencies:
 | --- | --- |
 | `libftdi` | [v1.5](https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2) |
 | `libusb-cmake` | [v1.0.27 - 8782527](https://github.com/libusb/libusb-cmake/commit/8782527de86be37e9dd5588e35832d01b411e09a) |
-| `cpp-httplib` | [v0.35.0 - 85b18a9](https://github.com/yhirose/cpp-httplib/commit/85b18a9c6431877188a706ba3c61679fa9de3e27) |
+| `curl` | [v8.9.1](https://github.com/curl/curl/releases/download/curl-8_9_1/curl-8.9.1.tar.gz) |
 
 ## Credits
 
 * [googletest](https://github.com/google/googletest) - used as source code, non-modified, originally distributed under BSD-3-Clause license.
 * [libftdi](https://www.intra2net.com/en/developer/libftdi/index.php) - used as source code, non-modified (some build options were modified out to ease building process), originally distributed under LGPL-2.1 license.
 * [libusb-cmake](https://github.com/libusb/libusb-cmake) - used as source code, non-modified (some build options were modified out to ease building process), originally distributed under LGPL-2.1 license.
-* [cpp-httplib](https://github.com/yhirose/cpp-httplib) - used as source code, non-modified, originally distributed under MIT license.
+* [curl](https://github.com/curl/curl) - used as source code, non-modified, originally distributed under the curl license.
 * [Elise Navennec - function export implementation](https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html) - used as source code, non-modified, originally distributed under MIT license.
