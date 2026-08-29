@@ -5,6 +5,36 @@
 #include <libkommpot.h>
 #include <third-party/spdlog/include/spdlog/spdlog.h>
 
+#include <algorithm>
+#include <cstring>
+
+namespace {
+    auto transfer_type_to_string(const kommpot::http_transfer_type &type) -> std::string
+    {
+        switch (type)
+        {
+        case kommpot::http_transfer_type::GET: {
+            return "GET";
+        }
+        case kommpot::http_transfer_type::POST: {
+            return "POST";
+        }
+        case kommpot::http_transfer_type::PUT: {
+            return "PUT";
+        }
+        case kommpot::http_transfer_type::PATCH: {
+            return "PATCH";
+        }
+        case kommpot::http_transfer_type::DELETE_E: {
+            return "DELETE";
+        }
+        default: {
+            return "";
+        }
+        }
+    }
+} // namespace
+
 communication_http::communication_http(const kommpot::http_device_identification &identification)
     : kommpot::device_communication(identification)
 {
