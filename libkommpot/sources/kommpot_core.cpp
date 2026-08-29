@@ -13,7 +13,7 @@
 
 #ifdef IS_HTTP_ENABLED
 #    include <communications/http/communication_http.h>
-#    include <curl/curl.h>
+#    include <communications/http/http_context.h>
 #endif
 
 #include <spdlog/async.h>
@@ -36,6 +36,14 @@
 auto kommpot_core::initialize() -> bool
 {
     initialize_logger();
+
+#ifdef IS_HTTP_ENABLED
+    if (!http_context::instance().initialize())
+    {
+        return false;
+    }
+#endif
+
     return true;
 }
 
@@ -48,6 +56,10 @@ auto kommpot_core::deinitialize() -> bool
 
 #ifdef IS_ETHERNET_ENABLED
     ethernet_context::instance().deinitialize();
+#endif
+
+#ifdef IS_HTTP_ENABLED
+    http_context::instance().deinitialize();
 #endif
 
     deinitialize_logger();
