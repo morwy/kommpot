@@ -166,7 +166,7 @@ namespace kommpot {
     };
 
     /**
-     * @brief states types of endpoint.
+     * @brief states HTTP request methods.
      */
     enum class http_transfer_type : uint8_t
     {
