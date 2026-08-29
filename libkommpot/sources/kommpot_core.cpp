@@ -11,6 +11,11 @@
 #    include <communications/ethernet/ethernet_context.h>
 #endif
 
+#ifdef IS_HTTP_ENABLED
+#    include <communications/http/communication_http.h>
+#    include <curl/curl.h>
+#endif
+
 #include <spdlog/async.h>
 #include <spdlog/sinks/callback_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -50,7 +55,9 @@ auto kommpot_core::deinitialize() -> bool
 }
 
 auto kommpot_core::settings() noexcept -> kommpot::settings_structure
-{ return m_settings; }
+{
+    return m_settings;
+}
 
 auto kommpot_core::set_settings(const kommpot::settings_structure &settings) noexcept -> void
 {
@@ -113,6 +120,12 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
         device_list.insert(std::end(device_list),
             std::make_move_iterator(std::begin(ethernet_devices)),
             std::make_move_iterator(std::end(ethernet_devices)));
+#endif
+
+#ifdef IS_HTTP_ENABLED
+        auto http_devices = communication_http::devices(identifications);
+        device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(http_devices)),
+            std::make_move_iterator(std::end(http_devices)));
 #endif
 
         if (device_cb)
