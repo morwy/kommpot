@@ -70,7 +70,9 @@ auto communication_http::devices(const std::vector<kommpot::device_identificatio
         ethernet_identification.name = identification->name;
         ethernet_identification.ip = identification->address;
         ethernet_identification.mac = identification->mac;
-        ethernet_identification.port = identification->port;
+        ethernet_identification.port = identification->port != 0
+                                                   ? identification->port
+                                                   : (identification->use_tls ? 443 : 80);
         ethernet_identification.protocol = kommpot::ethernet_protocol_type::TCP;
 
         const auto hosts = communication_ethernet::devices({ethernet_identification});
