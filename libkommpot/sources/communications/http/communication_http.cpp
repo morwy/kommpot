@@ -50,7 +50,65 @@ communication_http::~communication_http()
 auto communication_http::devices(const std::vector<kommpot::device_identification> &identifications)
     -> std::vector<std::shared_ptr<kommpot::device_communication>>
 {
-    return communication_ethernet::devices(identifications);
+    std::vector<std::shared_ptr<kommpot::device_communication>> devices;
+
+    /**
+     * HTTP devices are discovered by the Ethernet scan, the found hosts are then wrapped into HTTP
+     * communications. Every identification is scanned separately to keep its own HTTP parameters.
+     */
+    for (const auto &identification_variant : identifications)
+    {
+        const auto *identification =
+            std::get_if<kommpot::http_device_identification>(&identification_variant);
+        if (identification == nullptr)
+        {
+            SPDLOG_LOGGER_TRACE(KOMMPOT_LOGGER, "Provided identification is not HTTP, skipping.");
+            continue;
+        }
+
+        kommpot::ethernet_device_identification ethernet_identification;
+        ethernet_identification.name = identification->name;
+        ethernet_identification.ip = identification->address;
+        ethernet_identification.mac = identification->mac;
+        ethernet_identification.port = identification->port;
+        ethernet_identification.protocol = kommpot::ethernet_protocol_type::TCP;
+
+        const auto hosts = communication_ethernet::devices({ethernet_identification});
+        for (const auto &host : hosts)
+        {
+            if (host == nullptr)
+            {
+                continue;
+            }
+
+            const auto host_identification_variant = host->identification();
+            const auto *host_identification =
+                std::get_if<kommpot::ethernet_device_identification>(&host_identification_variant);
+            if (host_identification == nullptr)
+            {
+                continue;
+            }
+
+            kommpot::http_device_identification http_identification;
+            http_identification.name = host_identification->name;
+            http_identification.address = host_identification->ip;
+            http_identification.mac = host_identification->mac;
+            http_identification.port = host_identification->port;
+            http_identification.use_tls = identification->use_tls;
+
+            auto device = std::make_shared<communication_http>(http_identification);
+            if (device == nullptr)
+            {
+                SPDLOG_LOGGER_ERROR(
+                    KOMMPOT_LOGGER, "std::make_shared() failed creating the device!");
+                continue;
+            }
+
+            devices.push_back(device);
+        }
+    }
+
+    return devices;
 }
 
 auto communication_http::open() -> bool
