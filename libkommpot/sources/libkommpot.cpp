@@ -207,6 +207,15 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
         std::make_move_iterator(std::end(ethernet_devices)));
 #endif
 
+    /**
+     * @brief HTTP devices.
+     */
+#ifdef IS_HTTP_ENABLED
+    auto http_devices = communication_http::devices(identifications);
+    device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(http_devices)),
+        std::make_move_iterator(std::end(http_devices)));
+#endif
+
     return device_list;
 }
 
