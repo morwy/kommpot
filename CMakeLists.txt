@@ -197,6 +197,12 @@ if(IS_LIBFTDI_ENABLED)
     add_subdirectory(third-party/libftdi)
 endif()
 
+if(IS_HTTP_ENABLED)
+    message("Including libcurl dependency.")
+
+    set(INTERNAL_LIBRARIES ${INTERNAL_LIBRARIES} CURL::libcurl)
+endif()
+
 message("INTERNAL_DEPENDENCIES: ${INTERNAL_DEPENDENCIES}")
 message("INTERNAL_LIBRARIES: ${INTERNAL_LIBRARIES}")
 

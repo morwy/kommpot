@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -164,8 +165,41 @@ namespace kommpot {
         uint8_t endpoint = 0;
     };
 
-    using transfer_configuration = std::variant<bulk_transfer_configuration,
-        control_transfer_configuration, interrupt_transfer_configuration>;
+    /**
+     * @brief states HTTP request methods.
+     */
+    enum class http_transfer_type : uint8_t
+    {
+        UNKNOWN = 0,
+        GET = 1,
+        POST = 2,
+        PUT = 3,
+        PATCH = 4,
+
+        /**
+         * DELETE is a keyword, so we cannot use it as enum value. Thus, extra _E in the name.
+         */
+        DELETE_E = 5
+    };
+
+    struct http_transfer_configuration
+    {
+        http_transfer_type type = http_transfer_type::UNKNOWN;
+        std::string resource_path = "";
+        std::vector<std::pair<std::string, std::string>> headers = {};
+        std::string body = "";
+        std::string content_type = "";
+
+        /**
+         * @brief states how many bytes the last read() call copied into the provided buffer.
+         * @attention output-only, the transfer itself never reads this value.
+         */
+        mutable size_t bytes_read = 0;
+    };
+
+    using transfer_configuration =
+        std::variant<bulk_transfer_configuration, control_transfer_configuration,
+            interrupt_transfer_configuration, http_transfer_configuration>;
 
     /**
      * @brief states types of communications.
@@ -175,7 +209,8 @@ namespace kommpot {
         UNKNOWN = 0,
         LIBUSB = 1,
         LIBFTDI = 2,
-        ETHERNET = 3
+        ETHERNET = 3,
+        HTTP = 4
     };
 
     /**
@@ -208,8 +243,31 @@ namespace kommpot {
         uint32_t timeout_ms = 10000;
     };
 
-    using device_configuration =
-        std::variant<libftdi_device_configuration, ethernet_device_configuration>;
+    struct http_device_configuration
+    {
+        /**
+         * @brief states max timeout in milliseconds for connecting and for the whole transfer.
+         */
+        uint32_t timeout_ms = 5000;
+
+        /**
+         * @brief states value of the User-Agent header, no header is sent when empty.
+         */
+        std::string user_agent = "";
+
+        /**
+         * @brief states if the peer certificate and host name are verified for HTTPS transfers.
+         */
+        bool verify_peer = true;
+
+        /**
+         * @brief states if redirect responses are followed automatically.
+         */
+        bool follow_redirects = true;
+    };
+
+    using device_configuration = std::variant<libftdi_device_configuration,
+        ethernet_device_configuration, http_device_configuration>;
 
     /**
      * @brief describes error that happened during device communication.
@@ -288,8 +346,35 @@ namespace kommpot {
         uint16_t port = 0;
     };
 
-    using device_identification =
-        std::variant<usb_device_identification, ethernet_device_identification>;
+    struct http_device_identification
+    {
+        /**
+         * @category general identification parameters.
+         * @attention wildcards are supported.
+         */
+        std::string name = "*";
+
+        /**
+         * @category address identification parameters. It can be either URL or IP address.
+         * @attention wildcards are supported.
+         */
+        std::string address = "*";
+
+        /**
+         * @attention wildcards are supported.
+         */
+        std::string mac = "*";
+
+        uint16_t port = 0;
+
+        /**
+         * @brief states if transfers are performed over HTTPS instead of plain HTTP.
+         */
+        bool use_tls = false;
+    };
+
+    using device_identification = std::variant<usb_device_identification,
+        ethernet_device_identification, http_device_identification>;
 
     class EXPORTED device_communication
     {
@@ -368,6 +453,8 @@ namespace kommpot {
          * @param data states buffer to which read data will be written.
          * @param size_bytes states max buffer size.
          * @return true if read was successful, false if any error happened.
+         * @attention HTTP communication does not perform any request here, it drains the response
+         * body buffered by the preceding write() call and returns false once it is exhausted.
          */
         virtual auto read(
             const transfer_configuration &configuration, void *data, size_t size_bytes) -> bool = 0;
@@ -378,6 +465,8 @@ namespace kommpot {
          * @param data states buffer which will be written.
          * @param size_bytes states max buffer size.
          * @return true if write was successful, false if any error happened.
+         * @attention HTTP communication performs the whole request here, including GET, and buffers
+         * the response body for the subsequent read() calls.
          */
         virtual auto write(
             const transfer_configuration &configuration, void *data, size_t size_bytes) -> bool = 0;
@@ -407,6 +496,16 @@ namespace kommpot {
         device_identification m_identification_variant;
         device_configuration m_configuration_variant;
     };
+
+    /**
+     * Creates a communication object for the specified identification.
+     * Returns nullptr when support for that communication type is disabled.
+     *
+     * @param identification.
+     * @return device or nullptr.
+     */
+    auto EXPORTED device(const device_identification &identification = {})
+        -> std::shared_ptr<kommpot::device_communication>;
 
     /**
      * Provides list of devices according to specified identifications.

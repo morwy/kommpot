@@ -4,3 +4,4 @@
 #cmakedefine IS_LIBUSB_ENABLED
 #cmakedefine IS_LIBFTDI_ENABLED
 #cmakedefine IS_ETHERNET_ENABLED
+#cmakedefine IS_HTTP_ENABLED

@@ -3,7 +3,7 @@
 ## Description
 
 **kommpot** is a C++ library providing a small unified interface to multiple transfer protocols.  
-Interface consists of very basic functions - **get_device_list()** / **open()** / **close()** / **read()** / **write()** and similar.
+Interface consists of very basic functions - **devices()** / **open()** / **close()** / **read()** / **write()** and similar.
 A **native_handle()** function is available together with original SDK headers in case of certain fine-tuning required for some specific protocol.
 
 ### Prerequisites
@@ -38,10 +38,12 @@ Install required dependencies:
 | --- | --- |
 | `libftdi` | [v1.5](https://www.intra2net.com/en/developer/libftdi/download/libftdi1-1.5.tar.bz2) |
 | `libusb-cmake` | [v1.0.27 - 8782527](https://github.com/libusb/libusb-cmake/commit/8782527de86be37e9dd5588e35832d01b411e09a) |
+| `curl` | [v8.9.1](https://github.com/curl/curl/releases/download/curl-8_9_1/curl-8.9.1.tar.gz) |
 
 ## Credits
 
 * [googletest](https://github.com/google/googletest) - used as source code, non-modified, originally distributed under BSD-3-Clause license.
 * [libftdi](https://www.intra2net.com/en/developer/libftdi/index.php) - used as source code, non-modified (some build options were modified out to ease building process), originally distributed under LGPL-2.1 license.
 * [libusb-cmake](https://github.com/libusb/libusb-cmake) - used as source code, non-modified (some build options were modified out to ease building process), originally distributed under LGPL-2.1 license.
+* [curl](https://github.com/curl/curl) - used as source code, non-modified, originally distributed under the curl license.
 * [Elise Navennec - function export implementation](https://atomheartother.github.io/c++/2018/07/12/CPPDynLib.html) - used as source code, non-modified, originally distributed under MIT license.

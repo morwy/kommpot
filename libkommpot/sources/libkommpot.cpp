@@ -1,5 +1,4 @@
 #include "libkommpot.h"
-
 #include <build_options.h>
 
 #ifdef IS_LIBUSB_ENABLED
@@ -8,6 +7,10 @@
 
 #ifdef IS_ETHERNET_ENABLED
 #    include <communications/ethernet/communication_ethernet.h>
+#endif
+
+#ifdef IS_HTTP_ENABLED
+#    include "communications/http/communication_http.h"
 #endif
 
 #include <kommpot_core.h>
@@ -103,6 +106,9 @@ auto kommpot::communication_type_to_string(const communication_type &type) noexc
     case communication_type::ETHERNET: {
         return "ethernet";
     }
+    case communication_type::HTTP: {
+        return "http";
+    }
     default: {
         return "";
     }
@@ -137,6 +143,47 @@ auto kommpot::device_communication::type() const -> kommpot::communication_type
     return m_type;
 }
 
+auto kommpot::device(const device_identification &identification)
+    -> std::shared_ptr<kommpot::device_communication>
+{
+    auto result = std::visit(
+        [&](const auto &s) -> std::shared_ptr<kommpot::device_communication> {
+            if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                              kommpot::usb_device_identification>)
+            {
+#ifdef IS_LIBUSB_ENABLED
+                return std::make_shared<communication_libusb>(s);
+#else
+                return nullptr;
+#endif
+            }
+            else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                                   kommpot::ethernet_device_identification>)
+            {
+#ifdef IS_ETHERNET_ENABLED
+                return std::make_shared<communication_ethernet>(s);
+#else
+                return nullptr;
+#endif
+            }
+
+            else if constexpr (std::is_same_v<std::decay_t<decltype(s)>,
+                                   kommpot::http_device_identification>)
+            {
+#ifdef IS_HTTP_ENABLED
+                return std::make_shared<communication_http>(s);
+#else
+                return nullptr;
+#endif
+            }
+
+            return nullptr;
+        },
+        identification);
+
+    return result;
+}
+
 auto kommpot::devices(const std::vector<device_identification> &identifications)
     -> std::vector<std::shared_ptr<kommpot::device_communication>>
 {
@@ -158,6 +205,15 @@ auto kommpot::devices(const std::vector<device_identification> &identifications)
     auto ethernet_devices = communication_ethernet::devices(identifications);
     device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(ethernet_devices)),
         std::make_move_iterator(std::end(ethernet_devices)));
+#endif
+
+    /**
+     * @brief HTTP devices.
+     */
+#ifdef IS_HTTP_ENABLED
+    auto http_devices = communication_http::devices(identifications);
+    device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(http_devices)),
+        std::make_move_iterator(std::end(http_devices)));
 #endif
 
     return device_list;
