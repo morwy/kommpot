@@ -11,11 +11,6 @@
 #include <exception>
 
 namespace {
-    struct normalized_http_identification
-    {
-        kommpot::http_device_identification identification;
-    };
-
     auto parse_port(const std::string &value) -> uint16_t
     {
         if (value.empty()
@@ -43,9 +38,9 @@ namespace {
     }
 
     auto normalize_identification(const kommpot::http_device_identification &identification)
-        -> normalized_http_identification
+        -> kommpot::http_device_identification
     {
-        normalized_http_identification normalized = {identification};
+        auto normalized = identification;
 
         const auto scheme_separator = identification.address.find("://");
         if (scheme_separator == std::string::npos)
@@ -105,11 +100,11 @@ namespace {
             return normalized;
         }
 
-        normalized.identification.address = host;
-        normalized.identification.use_tls = scheme == "https";
-        if (normalized.identification.port == 0 && port != 0)
+        normalized.address = host;
+        normalized.use_tls = scheme == "https";
+        if (normalized.port == 0 && port != 0)
         {
-            normalized.identification.port = port;
+            normalized.port = port;
         }
 
         return normalized;
@@ -145,7 +140,7 @@ communication_http::communication_http(const kommpot::http_device_identification
     : kommpot::device_communication(identification)
 {
     m_type = kommpot::communication_type::HTTP;
-    m_identification = normalize_identification(identification).identification;
+    m_identification = normalize_identification(identification);
     m_configuration_variant = m_configuration;
 }
 
@@ -173,7 +168,7 @@ auto communication_http::devices(const std::vector<kommpot::device_identificatio
             continue;
         }
 
-        const auto normalized_identification = normalize_identification(*identification).identification;
+        const auto normalized_identification = normalize_identification(*identification);
 
         kommpot::ethernet_device_identification ethernet_identification;
         ethernet_identification.name = normalized_identification.name;
