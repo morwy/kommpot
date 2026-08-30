@@ -48,7 +48,11 @@ namespace {
             return normalized;
         }
 
-        const std::string scheme = identification.address.substr(0, scheme_separator);
+        std::string scheme = identification.address.substr(0, scheme_separator);
+        std::transform(scheme.begin(), scheme.end(), scheme.begin(),
+            [](const unsigned char character) {
+                return static_cast<char>(std::tolower(character));
+            });
         if (scheme != "http" && scheme != "https")
         {
             return normalized;
