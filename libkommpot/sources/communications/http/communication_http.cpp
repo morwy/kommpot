@@ -269,7 +269,16 @@ auto communication_http::build_url(const std::string &resource_path) const -> st
     const uint16_t default_port = m_identification.use_tls ? 443 : 80;
 
     std::string url = m_identification.use_tls ? "https://" : "http://";
-    url += m_identification.address;
+
+    const bool is_ipv6 = m_identification.address.find(':') != std::string::npos;
+    if (is_ipv6)
+    {
+        url += "[" + m_identification.address + "]";
+    }
+    else
+    {
+        url += m_identification.address;
+    }
 
     if (m_identification.port != 0 && m_identification.port != default_port)
     {
