@@ -498,9 +498,8 @@ namespace kommpot {
     };
 
     /**
-     * Provides device according to specified identification.
-     * Returns nullptr if no device was found.
-     * @attention blocking call.
+     * Creates a communication object for the specified identification.
+     * Returns nullptr when support for that communication type is disabled.
      *
      * @param identification.
      * @return device or nullptr.
