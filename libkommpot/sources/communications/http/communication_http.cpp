@@ -40,6 +40,7 @@ communication_http::communication_http(const kommpot::http_device_identification
 {
     m_type = kommpot::communication_type::HTTP;
     m_identification = identification;
+    m_configuration_variant = m_configuration;
 }
 
 communication_http::~communication_http()
