@@ -76,6 +76,7 @@ auto communication_http::devices(const std::vector<kommpot::device_identificatio
                                                    : (identification->use_tls ? 443 : 80);
         ethernet_identification.protocol = kommpot::ethernet_protocol_type::TCP;
 
+        std::vector<kommpot::http_device_identification> unique_hosts;
         const auto hosts = communication_ethernet::devices({ethernet_identification});
         for (const auto &host : hosts)
         {
@@ -98,6 +99,18 @@ auto communication_http::devices(const std::vector<kommpot::device_identificatio
             http_identification.mac = host_identification->mac;
             http_identification.port = host_identification->port;
             http_identification.use_tls = identification->use_tls;
+
+            const bool duplicate = std::any_of(unique_hosts.begin(), unique_hosts.end(),
+                [&http_identification](const auto &existing_identification) {
+                    return existing_identification.address == http_identification.address
+                        && existing_identification.mac == http_identification.mac
+                        && existing_identification.port == http_identification.port;
+                });
+            if (duplicate)
+            {
+                continue;
+            }
+            unique_hosts.push_back(http_identification);
 
             auto device = std::make_shared<communication_http>(http_identification);
             if (device == nullptr)
