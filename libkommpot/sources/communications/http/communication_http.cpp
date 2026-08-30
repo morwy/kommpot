@@ -6,9 +6,115 @@
 #include <third-party/spdlog/include/spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstring>
+#include <exception>
 
 namespace {
+    struct normalized_http_identification
+    {
+        kommpot::http_device_identification identification;
+    };
+
+    auto parse_port(const std::string &value) -> uint16_t
+    {
+        if (value.empty()
+            || !std::all_of(value.begin(), value.end(),
+                [](const char character) { return std::isdigit(character) != 0; }))
+        {
+            return 0;
+        }
+
+        unsigned long parsed_port = 0;
+        try
+        {
+            parsed_port = std::stoul(value);
+        }
+        catch (const std::exception &)
+        {
+            return 0;
+        }
+        if (parsed_port == 0 || parsed_port > UINT16_MAX)
+        {
+            return 0;
+        }
+
+        return static_cast<uint16_t>(parsed_port);
+    }
+
+    auto normalize_identification(const kommpot::http_device_identification &identification)
+        -> normalized_http_identification
+    {
+        normalized_http_identification normalized = {identification};
+
+        const auto scheme_separator = identification.address.find("://");
+        if (scheme_separator == std::string::npos)
+        {
+            return normalized;
+        }
+
+        const std::string scheme = identification.address.substr(0, scheme_separator);
+        if (scheme != "http" && scheme != "https")
+        {
+            return normalized;
+        }
+
+        const auto authority_start = scheme_separator + 3;
+        const auto authority_end = identification.address.find_first_of("/?#", authority_start);
+        const std::string authority = identification.address.substr(authority_start,
+            authority_end == std::string::npos ? std::string::npos : authority_end - authority_start);
+        if (authority.empty())
+        {
+            return normalized;
+        }
+
+        std::string host = authority;
+        uint16_t port = 0;
+
+        if (authority.front() == '[')
+        {
+            const auto host_end = authority.find(']');
+            if (host_end == std::string::npos || host_end == 1)
+            {
+                return normalized;
+            }
+
+            host = authority.substr(1, host_end - 1);
+
+            if (host_end + 1 < authority.size() && authority[host_end + 1] == ':')
+            {
+                port = parse_port(authority.substr(host_end + 2));
+            }
+        }
+        else
+        {
+            const auto port_separator = authority.rfind(':');
+            if (port_separator != std::string::npos
+                && authority.find(':') == port_separator)
+            {
+                port = parse_port(authority.substr(port_separator + 1));
+                if (port != 0)
+                {
+                    host = authority.substr(0, port_separator);
+                }
+            }
+        }
+
+        if (host.empty())
+        {
+            return normalized;
+        }
+
+        normalized.identification.address = host;
+        normalized.identification.use_tls = scheme == "https";
+        if (normalized.identification.port == 0 && port != 0)
+        {
+            normalized.identification.port = port;
+        }
+
+        return normalized;
+    }
+
     auto transfer_type_to_string(const kommpot::http_transfer_type &type) -> std::string
     {
         switch (type)
@@ -39,7 +145,7 @@ communication_http::communication_http(const kommpot::http_device_identification
     : kommpot::device_communication(identification)
 {
     m_type = kommpot::communication_type::HTTP;
-    m_identification = identification;
+    m_identification = normalize_identification(identification).identification;
     m_configuration_variant = m_configuration;
 }
 
@@ -67,13 +173,15 @@ auto communication_http::devices(const std::vector<kommpot::device_identificatio
             continue;
         }
 
+        const auto normalized_identification = normalize_identification(*identification).identification;
+
         kommpot::ethernet_device_identification ethernet_identification;
-        ethernet_identification.name = identification->name;
-        ethernet_identification.ip = identification->address;
-        ethernet_identification.mac = identification->mac;
-        ethernet_identification.port = identification->port != 0
-                                                   ? identification->port
-                                                   : (identification->use_tls ? 443 : 80);
+        ethernet_identification.name = normalized_identification.name;
+        ethernet_identification.ip = normalized_identification.address;
+        ethernet_identification.mac = normalized_identification.mac;
+        ethernet_identification.port = normalized_identification.port != 0
+                                                   ? normalized_identification.port
+                                                   : (normalized_identification.use_tls ? 443 : 80);
         ethernet_identification.protocol = kommpot::ethernet_protocol_type::TCP;
 
         std::vector<kommpot::http_device_identification> unique_hosts;
@@ -98,7 +206,7 @@ auto communication_http::devices(const std::vector<kommpot::device_identificatio
             http_identification.address = host_identification->ip;
             http_identification.mac = host_identification->mac;
             http_identification.port = host_identification->port;
-            http_identification.use_tls = identification->use_tls;
+            http_identification.use_tls = normalized_identification.use_tls;
 
             const bool duplicate = std::any_of(unique_hosts.begin(), unique_hosts.end(),
                 [&http_identification](const auto &existing_identification) {
