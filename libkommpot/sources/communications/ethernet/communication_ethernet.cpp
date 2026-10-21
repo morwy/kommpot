@@ -403,22 +403,34 @@ auto communication_ethernet::get_all_interfaces()
             continue;
         }
 
-        auto ipv4_gw_result = ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv4_gateway);
-        is_valid_ipv4 = ipv4_gw_result.has_value();
-        if (is_valid_ipv4)
-            interface.ipv4.gateway = *ipv4_gw_result;
-        if (!is_valid_ipv4)
+        if (ipv4_gateway != nullptr)
         {
-            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv4 gateway from sockaddr_in.");
+            auto ipv4_gw_result = ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv4_gateway);
+            is_valid_ipv4 = ipv4_gw_result.has_value();
+            if (is_valid_ipv4)
+            {
+                interface.ipv4.gateway = *ipv4_gw_result;
+            }
+
+            if (!is_valid_ipv4)
+            {
+                SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv4 gateway from sockaddr_in.");
+            }
         }
 
-        auto ipv6_gw_result = ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv6_gateway);
-        is_valid_ipv6 = ipv6_gw_result.has_value();
-        if (is_valid_ipv6)
-            interface.ipv6.gateway = *ipv6_gw_result;
-        if (!is_valid_ipv6)
+        if (ipv6_gateway != nullptr)
         {
-            SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv6 gateway from sockaddr_in.");
+            auto ipv6_gw_result = ethernet_address_factory::from_sockaddr_in((SOCKADDR *)ipv6_gateway);
+            is_valid_ipv6 = ipv6_gw_result.has_value();
+            if (is_valid_ipv6)
+            {
+                interface.ipv6.gateway = *ipv6_gw_result;
+            }
+
+            if (!is_valid_ipv6)
+            {
+                SPDLOG_LOGGER_WARN(KOMMPOT_LOGGER, "Failed to create IPv6 gateway from sockaddr_in.");
+            }
         }
 
         if (!is_valid_ipv4 && !is_valid_ipv6)
