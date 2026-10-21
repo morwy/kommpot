@@ -21,6 +21,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+
 #ifdef _WIN32
 #    include <spdlog/sinks/msvc_sink.h>
 #endif
@@ -97,53 +99,81 @@ auto kommpot_core::devices(const std::vector<kommpot::device_identification> &id
     }
 
     m_future = std::async(std::launch::async, [=]() mutable {
-        std::vector<std::shared_ptr<kommpot::device_communication>> device_list;
-
-        /**
-         * @brief libusb devices.
-         */
-        if (status_cb)
-        {
-            status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
-        }
 
 #ifdef IS_LIBUSB_ENABLED
-        auto libusb_devices = communication_libusb::devices(identifications);
-        device_list.insert(std::end(device_list),
-            std::make_move_iterator(std::begin(libusb_devices)),
-            std::make_move_iterator(std::end(libusb_devices)));
+        /**
+         * @brief libusb devices. Only enumerated when at least one USB identification is
+         * requested.
+         */
+        const bool has_usb_identification = std::any_of(std::begin(identifications),
+            std::end(identifications), [](const kommpot::device_identification &identification) {
+                return std::holds_alternative<kommpot::usb_device_identification>(identification);
+            });
+
+        if (has_usb_identification)
+        {
+            if (status_cb)
+            {
+                status_cb(kommpot::enumeration_status::ENUMERATING_USB_DEVICES);
+            }
+
+            auto libusb_devices = communication_libusb::devices(identifications);
+            if (device_cb)
+            {
+                device_cb(libusb_devices);
+            }
+        }
 #endif
 
-        if (device_cb)
-        {
-            device_cb(device_list);
-        }
-
-        /**
-         * @brief ethernet devices.
-         */
-        if (status_cb)
-        {
-            status_cb(kommpot::enumeration_status::ENUMERATING_ETHERNET_DEVICES);
-        }
-
 #ifdef IS_ETHERNET_ENABLED
-        auto ethernet_devices = communication_ethernet::devices(identifications);
-        device_list.insert(std::end(device_list),
-            std::make_move_iterator(std::begin(ethernet_devices)),
-            std::make_move_iterator(std::end(ethernet_devices)));
+        /**
+         * @brief ethernet devices. Only enumerated when at least one ethernet identification is
+         * requested.
+         */
+        const bool has_ethernet_identification = std::any_of(std::begin(identifications),
+            std::end(identifications), [](const kommpot::device_identification &identification) {
+                return std::holds_alternative<kommpot::ethernet_device_identification>(
+                    identification);
+            });
+
+        if (has_ethernet_identification)
+        {
+            if (status_cb)
+            {
+                status_cb(kommpot::enumeration_status::ENUMERATING_ETHERNET_DEVICES);
+            }
+
+            auto ethernet_devices = communication_ethernet::devices(identifications);
+            if (device_cb)
+            {
+                device_cb(ethernet_devices);
+            }
+        }
 #endif
 
 #ifdef IS_HTTP_ENABLED
-        auto http_devices = communication_http::devices(identifications);
-        device_list.insert(std::end(device_list), std::make_move_iterator(std::begin(http_devices)),
-            std::make_move_iterator(std::end(http_devices)));
-#endif
+        /**
+         * @brief http devices. Only enumerated when at least one http identification is requested.
+         */
+        const bool has_http_identification = std::any_of(std::begin(identifications),
+            std::end(identifications), [](const kommpot::device_identification &identification) {
+                return std::holds_alternative<kommpot::http_device_identification>(identification);
+            });
 
-        if (device_cb)
+        if (has_http_identification)
         {
-            device_cb(device_list);
+            if (status_cb)
+            {
+                status_cb(kommpot::enumeration_status::ENUMERATING_HTTP_DEVICES);
+            }
+
+            auto http_devices = communication_http::devices(identifications);
+            if (device_cb)
+            {
+                device_cb(http_devices);
+            }
         }
+#endif
 
         if (status_cb)
         {

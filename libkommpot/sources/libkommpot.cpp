@@ -238,6 +238,9 @@ auto kommpot::enumeration_status_to_string(const enumeration_status &status) noe
     case enumeration_status::ENUMERATING_ETHERNET_DEVICES: {
         return "Enumerating Ethernet devices";
     }
+    case enumeration_status::ENUMERATING_HTTP_DEVICES: {
+        return "Enumerating HTTP devices";
+    }
     case enumeration_status::COMPLETED: {
         return "Completed";
     }
