@@ -233,9 +233,12 @@ namespace kommpot {
     {
         /**
          * @brief states max number of concurrent threads that will be used for searching devices on
-         * network.
+         * network. The effective pool size is additionally capped dynamically based on CPU
+         * concurrency, because hundreds of simultaneously created threads and sockets serialize on
+         * the process heap and loader locks and can freeze unrelated threads (e.g. a GUI event
+         * loop).
          */
-        uint32_t max_concurrent_search_threads = 256;
+        uint32_t max_concurrent_search_threads = 128;
 
         /**
          * @brief states max timeout in milliseconds for network operations.

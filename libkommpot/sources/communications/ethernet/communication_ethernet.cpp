@@ -891,10 +891,19 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
     /**
      * @brief a fixed pool of workers keeps pulling the next address to scan, so a fast host never
      * waits for a slow one to time out before the next address is picked up.
+     * @attention the pool is sized dynamically from the CPU concurrency, but kept well below the
+     * configured maximum and never huge: probes are I/O-bound, so more than a few dozen concurrent
+     * workers barely speeds the scan up, while hundreds of simultaneously created threads and
+     * sockets serialize on the process heap and loader locks and can freeze unrelated threads.
      */
     const uint64_t total_hosts = last_index - first_index;
-    const uint32_t worker_count =
-        static_cast<uint32_t>(std::min<uint64_t>(M_MAX_CONCURRENT_SEARCH_THREADS, total_hosts));
+
+    const unsigned int hardware_threads = std::thread::hardware_concurrency();
+    const uint64_t dynamic_cap =
+        std::max<uint64_t>(8, 4ULL * (hardware_threads > 0 ? hardware_threads : 4));
+
+    const uint64_t worker_count = std::min(
+        {static_cast<uint64_t>(M_MAX_CONCURRENT_SEARCH_THREADS), dynamic_cap, total_hosts});
 
     auto worker = [&]() {
         while (true)
@@ -940,8 +949,8 @@ auto communication_ethernet::scan_network_for_hosts(const ethernet_network_infor
     };
 
     std::vector<std::thread> workers;
-    workers.reserve(worker_count);
-    for (uint32_t worker_index = 0; worker_index < worker_count; ++worker_index)
+    workers.reserve(static_cast<size_t>(worker_count));
+    for (uint64_t worker_index = 0; worker_index < worker_count; ++worker_index)
     {
         workers.emplace_back(worker);
     }
